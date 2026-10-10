@@ -1,0 +1,192 @@
+{
+  "api-gateway": {
+    "request_rate": {
+      "median": 20.00160012801024,
+      "scale": 2.000160012801024
+    },
+    "error_rate": {
+      "median": 0.0,
+      "scale": 0.02
+    },
+    "p99_latency_ms": {
+      "median": 242.4554685847679,
+      "scale": 36.368320287715186
+    },
+    "inflight": {
+      "median": 1.0,
+      "scale": 1.4826
+    },
+    "cpu_cores": {
+      "median": 0.022025519407624684,
+      "scale": 0.01
+    },
+    "cpu_throttle_ratio": {
+      "median": 0.0,
+      "scale": 0.05
+    },
+    "memory_mb": {
+      "median": 41.01171875,
+      "scale": 10.0
+    },
+    "caller_error_rate": {
+      "median": 0.0,
+      "scale": 0.02
+    },
+    "caller_p99_ms": {
+      "median": 242.6617647058824,
+      "scale": 36.39926470588236
+    }
+  },
+  "product-service": {
+    "request_rate": {
+      "median": 20.321155273605136,
+      "scale": 2.0321155273605136
+    },
+    "error_rate": {
+      "median": 0.0,
+      "scale": 0.02
+    },
+    "p99_latency_ms": {
+      "median": 16.085714285714523,
+      "scale": 15.0
+    },
+    "inflight": {
+      "median": 0.0,
+      "scale": 1.0
+    },
+    "cpu_cores": {
+      "median": 0.028110350789840696,
+      "scale": 0.01
+    },
+    "cpu_throttle_ratio": {
+      "median": 0.0,
+      "scale": 0.05
+    },
+    "memory_mb": {
+      "median": 69.765625,
+      "scale": 10.0
+    },
+    "caller_error_rate": {
+      "median": 0.0,
+      "scale": 0.02
+    },
+    "caller_p99_ms": {
+      "median": 16.55707954740283,
+      "scale": 15.0
+    }
+  },
+  "order-service": {
+    "request_rate": {
+      "median": 8.080484832322327,
+      "scale": 0.8080484832322328
+    },
+    "error_rate": {
+      "median": 0.0,
+      "scale": 0.02
+    },
+    "p99_latency_ms": {
+      "median": 246.94943291476508,
+      "scale": 37.04241493721476
+    },
+    "inflight": {
+      "median": 1.0,
+      "scale": 1.4826
+    },
+    "cpu_cores": {
+      "median": 0.02674867633284269,
+      "scale": 0.01
+    },
+    "cpu_throttle_ratio": {
+      "median": 0.0,
+      "scale": 0.05
+    },
+    "memory_mb": {
+      "median": 74.95703125,
+      "scale": 10.0
+    },
+    "caller_error_rate": {
+      "median": 0.0,
+      "scale": 0.02
+    },
+    "caller_p99_ms": {
+      "median": 246.98543689320388,
+      "scale": 37.04781553398058
+    }
+  },
+  "payment-service": {
+    "request_rate": {
+      "median": 6.920524840835221,
+      "scale": 0.6920524840835222
+    },
+    "error_rate": {
+      "median": 0.0,
+      "scale": 0.02
+    },
+    "p99_latency_ms": {
+      "median": 246.49348857142857,
+      "scale": 36.97402328571428
+    },
+    "inflight": {
+      "median": 1.0,
+      "scale": 1.4826
+    },
+    "cpu_cores": {
+      "median": 0.017515664242486833,
+      "scale": 0.01
+    },
+    "cpu_throttle_ratio": {
+      "median": 0.0,
+      "scale": 0.05
+    },
+    "memory_mb": {
+      "median": 63.62890625,
+      "scale": 10.0
+    },
+    "caller_error_rate": {
+      "median": 0.0,
+      "scale": 0.02
+    },
+    "caller_p99_ms": {
+      "median": 246.5238266673524,
+      "scale": 36.97857400010286
+    }
+  },
+  "notification-service": {
+    "request_rate": {
+      "median": 9.920793663493079,
+      "scale": 0.9920793663493079
+    },
+    "error_rate": {
+      "median": 0.0,
+      "scale": 0.02
+    },
+    "p99_latency_ms": {
+      "median": 0.495,
+      "scale": 15.0
+    },
+    "inflight": {
+      "median": 0.0,
+      "scale": 1.0
+    },
+    "cpu_cores": {
+      "median": 0.00648119497550369,
+      "scale": 0.01
+    },
+    "cpu_throttle_ratio": {
+      "median": 0.0,
+      "scale": 0.05
+    },
+    "memory_mb": {
+      "median": 32.19921875,
+      "scale": 10.0
+    },
+    "caller_error_rate": {
+      "median": 0.0,
+      "scale": 0.02
+    },
+    "caller_p99_ms": {
+      "median": 0.0,
+      "scale": 15.0
+    }
+  }
+}

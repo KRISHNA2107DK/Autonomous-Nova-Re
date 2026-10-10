@@ -1,0 +1,40 @@
+# traffic-generator — constant open-loop shopper traffic through nginx-gateway,
+# plus the user-facing SLI (loadgen_requests_total / loadgen_request_duration_seconds).
+# Lives outside the shopfusion namespace so chaos experiments never touch it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-generator
+  namespace: novasurge-system
+  labels:
+    app: traffic-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic-generator
+  template:
+    metadata:
+      labels:
+        app: traffic-generator
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        prometheus.io/path: /metrics
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: traffic-generator
+          image: novasurge/traffic-generator:local
+          imagePullPolicy: Never
+          env:
+            - {name: TARGET_URL, value: "http://nginx-gateway.shopfusion.svc.cluster.local"}
+            - {name: RPS, value: "20"}
+            - {name: MAX_CONCURRENCY, value: "100"}
+            - {name: REQUEST_TIMEOUT_SECONDS, value: "8"}
+          ports:
+            - containerPort: 9100
+              name: metrics
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 192Mi}

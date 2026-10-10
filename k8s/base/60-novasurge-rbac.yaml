@@ -1,0 +1,50 @@
+# Least-privilege identity for the NovaSurge control loop.
+#
+# Every permission below maps to a concrete injector / remediator / RCA call;
+# nothing is cluster-wide except reading HPA-relevant metrics. When the
+# platform runs from the host it uses your kubeconfig context instead; this
+# ServiceAccount is what you would bind if NovaSurge ran inside the cluster.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: novasurge
+  namespace: novasurge-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: novasurge-operator
+  namespace: shopfusion
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch, delete, patch]          # pod_deletion, pod_restart, traffic_reroute (quarantine)
+  - apiGroups: [""]
+    resources: [pods/exec]
+    verbs: [create, get]                              # latency_injection (tc), cache_flush (redis-cli)
+  - apiGroups: [""]
+    resources: [pods/log, events]
+    verbs: [get, list, watch]                         # RCA evidence (error logs, change events)
+  - apiGroups: [apps]
+    resources: [deployments, replicasets]
+    verbs: [get, list, watch, patch]                  # cpu_throttle, resource_restore, rolling_restart
+  - apiGroups: [autoscaling]
+    resources: [horizontalpodautoscalers]
+    verbs: [get, list, watch, patch]                  # replica_reduction, hpa_scaleout
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: [get, list, watch, create, delete]         # network_partition, network_policy_rollback
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: novasurge-operator
+  namespace: shopfusion
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: novasurge-operator
+subjects:
+  - kind: ServiceAccount
+    name: novasurge
+    namespace: novasurge-system

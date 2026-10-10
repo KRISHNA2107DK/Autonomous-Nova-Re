@@ -1,0 +1,22 @@
+# Single-node kind cluster for NovaSurge.
+# Created by:  python -m novasurge up   (or: kind create cluster --config k8s/kind-config.yaml)
+#
+# Only two NodePorts are published to the host, both bound to loopback:
+#   30080 -> nginx-gateway (ShopFusion entry point)
+#   30090 -> Prometheus
+# kindnet (kind's default CNI) enforces NetworkPolicy, which the
+# network_partition injector relies on.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: novasurge
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 30080
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 30090
+        hostPort: 30090
+        listenAddress: "127.0.0.1"
+        protocol: TCP

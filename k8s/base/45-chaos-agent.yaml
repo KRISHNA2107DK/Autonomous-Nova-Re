@@ -1,0 +1,35 @@
+# chaos-agent — one pod per node in the node's network namespace with
+# NET_ADMIN (not fully privileged). NovaSurge execs `conntrack -D` here so a
+# network-partition NetworkPolicy also cuts flows that were already
+# established (CNIs typically only evaluate policy for new connections).
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: chaos-agent
+  namespace: novasurge-system
+  labels:
+    app: chaos-agent
+spec:
+  selector:
+    matchLabels:
+      app: chaos-agent
+  template:
+    metadata:
+      labels:
+        app: chaos-agent
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      terminationGracePeriodSeconds: 2
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: chaos-agent
+          image: novasurge/chaos-agent:local
+          imagePullPolicy: Never
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]
+          resources:
+            requests: {cpu: 5m, memory: 8Mi}
+            limits: {cpu: 100m, memory: 32Mi}

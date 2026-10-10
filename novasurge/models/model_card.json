@@ -1,0 +1,141 @@
+{
+  "created_at": "2026-10-10T20:21:40.183227+00:00",
+  "data": {
+    "source": "prometheus",
+    "window_start": "2026-10-10T20:11:37.154864+00:00",
+    "window_end": "2026-10-10T20:21:37.154864+00:00",
+    "step_seconds": 5,
+    "samples_per_service": {
+      "api-gateway": 121,
+      "product-service": 121,
+      "order-service": 121,
+      "payment-service": 121,
+      "notification-service": 121
+    },
+    "recorded_runs_used": 0
+  },
+  "features": [
+    "request_rate",
+    "error_rate",
+    "p99_latency_ms",
+    "inflight",
+    "cpu_cores",
+    "cpu_throttle_ratio",
+    "memory_mb",
+    "caller_error_rate",
+    "caller_p99_ms"
+  ],
+  "iforest": {
+    "n_estimators": 200,
+    "augmentation": {
+      "copies": 4,
+      "sigma": 0.75
+    },
+    "threshold": 0.1031418420158618,
+    "calibration": {
+      "clean_floor": 0.1084579994423796,
+      "weakest_probe": 0.09782568458934399,
+      "probe_medians": {
+        "request_rate": 0.09782568458934399,
+        "error_rate": 0.08121207270857361,
+        "p99_latency_ms": 0.0879245302848326,
+        "inflight": 0.091924904828727,
+        "cpu_cores": 0.07732759917234167,
+        "cpu_throttle_ratio": 0.0826739927661001,
+        "memory_mb": 0.06374270141885885,
+        "caller_error_rate": 0.08451113173407632,
+        "caller_p99_ms": 0.08048527414829465
+      }
+    },
+    "train_score_quantiles": {
+      "0.001": 0.1084579994423796,
+      "0.01": 0.11820134505401803,
+      "0.5": 0.15249865115842415
+    },
+    "holdout_false_positive_rate": 0.0,
+    "fault_probe_z": 8.0,
+    "fault_probe_detection_rate": {
+      "request_rate": 1.0,
+      "error_rate": 1.0,
+      "p99_latency_ms": 1.0,
+      "inflight": 1.0,
+      "cpu_cores": 1.0,
+      "cpu_throttle_ratio": 1.0,
+      "memory_mb": 1.0,
+      "caller_error_rate": 1.0,
+      "caller_p99_ms": 1.0
+    }
+  },
+  "forecaster": {
+    "history_steps": 12,
+    "horizon_steps": 12,
+    "n_features": 9,
+    "hidden": 48,
+    "horizon": 12,
+    "epochs_run": 39,
+    "train_windows": 395,
+    "val_windows": 95,
+    "val_mse": 0.06226,
+    "persistence_val_mse": 0.08957,
+    "skill_vs_persistence": 0.3049,
+    "residual_mean": 0.1719873994588852,
+    "residual_std": 0.11716607958078384
+  },
+  "baseline_medians": {
+    "api-gateway": {
+      "request_rate": 20.00160012801024,
+      "error_rate": 0.0,
+      "p99_latency_ms": 242.4554685847679,
+      "inflight": 1.0,
+      "cpu_cores": 0.022025519407624684,
+      "cpu_throttle_ratio": 0.0,
+      "memory_mb": 41.01171875,
+      "caller_error_rate": 0.0,
+      "caller_p99_ms": 242.6617647058824
+    },
+    "product-service": {
+      "request_rate": 20.321155273605136,
+      "error_rate": 0.0,
+      "p99_latency_ms": 16.085714285714523,
+      "inflight": 0.0,
+      "cpu_cores": 0.028110350789840696,
+      "cpu_throttle_ratio": 0.0,
+      "memory_mb": 69.765625,
+      "caller_error_rate": 0.0,
+      "caller_p99_ms": 16.55707954740283
+    },
+    "order-service": {
+      "request_rate": 8.080484832322327,
+      "error_rate": 0.0,
+      "p99_latency_ms": 246.94943291476508,
+      "inflight": 1.0,
+      "cpu_cores": 0.02674867633284269,
+      "cpu_throttle_ratio": 0.0,
+      "memory_mb": 74.95703125,
+      "caller_error_rate": 0.0,
+      "caller_p99_ms": 246.98543689320388
+    },
+    "payment-service": {
+      "request_rate": 6.920524840835221,
+      "error_rate": 0.0,
+      "p99_latency_ms": 246.49348857142857,
+      "inflight": 1.0,
+      "cpu_cores": 0.017515664242486833,
+      "cpu_throttle_ratio": 0.0,
+      "memory_mb": 63.62890625,
+      "caller_error_rate": 0.0,
+      "caller_p99_ms": 246.5238266673524
+    },
+    "notification-service": {
+      "request_rate": 9.920793663493079,
+      "error_rate": 0.0,
+      "p99_latency_ms": 0.495,
+      "inflight": 0.0,
+      "cpu_cores": 0.00648119497550369,
+      "cpu_throttle_ratio": 0.0,
+      "memory_mb": 32.19921875,
+      "caller_error_rate": 0.0,
+      "caller_p99_ms": 0.0
+    }
+  }
+}

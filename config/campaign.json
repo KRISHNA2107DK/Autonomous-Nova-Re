@@ -1,0 +1,11 @@
+{
+  "name": "default-5-round",
+  "description": "One round per fault type. target \"auto\" lets the strategy pick the service (blast radius, business impact, user traffic, load, redundancy, coverage). Pin a target by naming the service instead.",
+  "rounds": [
+    {"injector": "pod_deletion", "target": "auto"},
+    {"injector": "cpu_throttle", "target": "auto"},
+    {"injector": "network_partition", "target": "auto"},
+    {"injector": "latency_injection", "target": "auto"},
+    {"injector": "replica_reduction", "target": "auto"}
+  ]
+}

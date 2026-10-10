@@ -1,0 +1,19 @@
+# shopfusion        - the application under test (chaos experiments target only this namespace)
+# novasurge-system  - observability + traffic generator (never targeted by chaos)
+#
+# Note: there is deliberately NO baseline NetworkPolicy here. NetworkPolicies
+# are additive allow-lists, so a namespace-wide "allow all" policy would
+# silently neutralise the network_partition experiment.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shopfusion
+  labels:
+    app.kubernetes.io/part-of: shopfusion
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: novasurge-system
+  labels:
+    app.kubernetes.io/part-of: novasurge

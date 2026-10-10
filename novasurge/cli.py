@@ -1,0 +1,448 @@
+"""
+NovaSurge command line.
+
+    python -m novasurge demo            everything: cluster -> models -> dashboard -> 5-round campaign
+    python -m novasurge up              create/update the cluster and deploy ShopFusion (idempotent)
+    python -m novasurge train           (re)train detection models on live baseline telemetry
+    python -m novasurge serve           API + dashboard on http://127.0.0.1:8000 (autopilot on)
+    python -m novasurge campaign        run a chaos campaign (uses the running server if there is one)
+    python -m novasurge campaign --dry-run   same campaign against the built-in cluster simulator
+    python -m novasurge inject <fault> <service>   inject one fault by hand (autopilot heals it)
+    python -m novasurge revert          revert manual injections
+    python -m novasurge status          health of every component
+    python -m novasurge report          print the latest campaign report
+    python -m novasurge down [--delete] pause the cluster (or delete it)
+    python -m novasurge test            run the test-suite
+    python -m novasurge dashboard-build rebuild the React dashboard
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import logging
+import os
+import shutil
+import subprocess
+import sys
+import time
+import webbrowser
+
+from novasurge import config
+
+BASELINE_MINUTES = 8
+WARMUP_MINUTES = 1
+CHAOS_SETTLE_MINUTES = 1.5     # metrics windows + autoscaler settling after the last fault
+
+
+def _utf8_console() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
+
+def say(msg: str) -> None:
+    print(f"[novasurge] {msg}", flush=True)
+
+
+# ── commands ─────────────────────────────────────────────────────────────────
+def cmd_up(args) -> None:
+    from novasurge import infra
+    infra.up(force_build=args.rebuild)
+    if not args.skip_models:
+        ensure_models()
+
+
+def ensure_models(minutes: int = BASELINE_MINUTES) -> None:
+    from novasurge.ml.train import models_present
+    if models_present():
+        say("detection models present (retrain any time with: python -m novasurge train)")
+        return
+    say("no trained models yet — training on live baseline telemetry")
+    train_live(minutes, include_recorded=False, wait=True)
+
+
+def clean_minutes_available() -> tuple[float, str]:
+    """Minutes of steady traffic with no NovaSurge chaos/remediation activity in them."""
+    from novasurge import infra, state_db
+    traffic = infra.traffic_minutes_available()
+    last = state_db.last_chaos_activity()
+    if last is None:
+        return traffic, "steady traffic"
+    since_chaos = (time.time() - last.timestamp()) / 60.0 - CHAOS_SETTLE_MINUTES
+    if since_chaos < traffic:
+        return max(since_chaos, 0.0), "quiet time since the last chaos/remediation activity"
+    return traffic, "steady traffic"
+
+
+def train_live(minutes: int, include_recorded: bool, wait: bool) -> dict:
+    from novasurge.ml.train import train
+    need = minutes + WARMUP_MINUTES
+    have, what = clean_minutes_available()
+    if have < need:
+        if not wait:
+            raise SystemExit(f"only {have:.1f} min of {what}; need {need} (omit --no-wait to wait)")
+        say(f"collecting a clean baseline: {have:.1f}/{need} min of {what} so far "
+            f"(the in-cluster traffic generator keeps the shop busy; do not inject faults meanwhile)")
+        while have < need:
+            time.sleep(30)
+            have, what = clean_minutes_available()
+            say(f"  baseline {min(have, need):.1f}/{need} min")
+    end = time.time()
+    return train(start=end - minutes * 60, end=end, include_recorded=include_recorded)
+
+
+def cmd_train(args) -> None:
+    card = train_live(args.minutes, args.include_recorded, wait=not args.no_wait)
+    say(f"threshold {card['iforest']['threshold']:.4f}, holdout false-positive rate "
+        f"{card['iforest']['holdout_false_positive_rate']:.2%}, forecaster skill vs persistence "
+        f"{card['forecaster']['skill_vs_persistence']:+.1%}")
+    say("restart a running `serve` to load the new models")
+
+
+def _server(autopilot: bool, port: int):
+    import uvicorn
+    from novasurge.api.server import create_app
+    app = create_app(autopilot=autopilot)
+    server = uvicorn.Server(uvicorn.Config(app, host=config.API_HOST, port=port, log_level="warning"))
+    return app, server
+
+
+def cmd_serve(args) -> None:
+    _, server = _server(autopilot=not args.no_autopilot, port=args.port)
+    url = f"http://{config.API_HOST}:{args.port}"
+    say(f"dashboard + API on {url}  (autopilot {'off' if args.no_autopilot else 'on'}; Ctrl+C to stop)")
+    if not args.no_browser:
+        webbrowser.open(url)
+    server.run()
+
+
+def _api_up(url: str) -> bool:
+    import httpx
+    try:
+        return httpx.get(f"{url}/api/health", timeout=2).status_code == 200
+    except httpx.HTTPError:
+        return False
+
+
+async def _tail_campaign(url: str, campaign_id: str, after: int) -> dict | None:
+    import httpx
+    async with httpx.AsyncClient(timeout=10) as client:
+        while True:
+            try:
+                events = (await client.get(f"{url}/api/events", params={"after": after, "limit": 200})).json()
+            except httpx.HTTPError:
+                await asyncio.sleep(2)
+                continue
+            for ev in events:
+                after = ev["id"]
+                if ev.get("campaign_id") == campaign_id:
+                    tag = f"R{ev['round']}" if ev.get("round") else "--"
+                    print(f"  [{tag} {ev['phase']:<9}] {ev['message']}", flush=True)
+            try:
+                c = (await client.get(f"{url}/api/campaigns/{campaign_id}")).json()
+                if c.get("status") not in (None, "RUNNING"):
+                    return c
+            except (httpx.HTTPError, ValueError):
+                pass
+            await asyncio.sleep(1.5)
+
+
+def _print_scorecard(report: dict | None) -> None:
+    if not report:
+        return
+    print()
+    say(f"RESILIENCE SCORE {report.get('resilience_score')}/100 — {report.get('verdict')}")
+    for k, v in (report.get("components") or {}).items():
+        print(f"      {k:<26} {v}")
+    print(f"      mean TTD {report.get('mean_ttd_seconds')}s · mean TTR {report.get('mean_ttr_seconds')}s · "
+          f"RCA accuracy {report.get('rca_origin_accuracy', 0):.0%} · classification "
+          f"{report.get('classification_accuracy', 0):.0%}")
+    say(f"full report: {config.REPORTS_DIR / 'LATEST.md'}")
+
+
+def _plan(args) -> list[dict]:
+    from novasurge.orchestrator import load_plan
+    if args.injector:
+        return [{"injector": args.injector, "target": args.target or "auto"}]
+    plan = load_plan(config.REPO_ROOT / args.plan if args.plan else None)
+    return plan[: args.rounds] if args.rounds else plan
+
+
+def cmd_campaign(args) -> None:
+    plan = _plan(args)
+    if args.dry_run:
+        report = asyncio.run(_run_simulated_campaign(plan))
+        _print_scorecard(report)
+        return
+    url = config.API_URL
+    if _api_up(url):
+        import httpx
+        say(f"submitting the campaign to the running NovaSurge server at {url} (watch the dashboard)")
+        after = (httpx.get(f"{url}/api/events", params={"limit": 1}).json() or [{"id": 0}])[-1]["id"]
+        resp = httpx.post(f"{url}/api/campaign/start", json={"plan": plan}, timeout=10)
+        if resp.status_code != 200:
+            raise SystemExit(f"server refused the campaign: {resp.text}")
+        cid = resp.json()["campaign_id"]
+        result = asyncio.run(_tail_campaign(url, cid, after))
+        _print_scorecard((result or {}).get("report"))
+        return
+    report = asyncio.run(_run_local_campaign(plan))
+    _print_scorecard(report)
+
+
+async def _run_local_campaign(plan: list[dict]) -> dict:
+    from novasurge.cluster import get_cluster
+    from novasurge.monitor import Monitor
+    from novasurge.orchestrator import Campaign
+    monitor = Monitor()
+    if monitor.detector is None:
+        raise SystemExit(monitor.model_error)
+    await monitor.start()
+    try:
+        say("warming up the detector (LSTM needs 60s of history for forecasts; detection is live immediately)")
+        for _ in range(3):
+            await monitor.next_tick(timeout=30)
+        return await Campaign(monitor, get_cluster(), plan=plan).run()
+    finally:
+        await monitor.stop()
+
+
+async def _run_simulated_campaign(plan: list[dict]) -> dict:
+    from novasurge import sim
+    say("DRY RUN — simulated cluster and telemetry; nothing touches Kubernetes")
+    return await sim.run_campaign(plan)
+
+
+def cmd_demo(args) -> None:
+    from novasurge import infra
+    infra.up(force_build=args.rebuild)
+    ensure_models()
+    if not (config.DASHBOARD_DIST / "index.html").exists():
+        build_dashboard()
+    asyncio.run(_demo(args))
+
+
+async def _demo(args) -> None:
+    import httpx
+    app, server = _server(autopilot=True, port=config.API_PORT)
+    task = asyncio.create_task(server.serve())
+    while not server.started:
+        if task.done():
+            raise SystemExit(f"API server failed to start (port {config.API_PORT} in use?)")
+        await asyncio.sleep(0.2)
+    url = config.API_URL
+    say(f"dashboard: {url}")
+    if not args.no_browser:
+        webbrowser.open(url)
+    hub = app.state.hub
+    say("warming up the detector")
+    for _ in range(3):
+        await hub.monitor.next_tick(timeout=30)
+    plan = _plan(args)
+    async with httpx.AsyncClient(timeout=10) as client:
+        after = ((await client.get(f"{url}/api/events", params={"limit": 1})).json() or [{"id": 0}])[-1]["id"]
+        resp = await client.post(f"{url}/api/campaign/start", json={"plan": plan})
+        resp.raise_for_status()
+        cid = resp.json()["campaign_id"]
+    say(f"campaign {cid} started: {len(plan)} rounds")
+    result = await _tail_campaign(url, cid, after)
+    _print_scorecard((result or {}).get("report"))
+    if args.exit_after:
+        server.should_exit = True
+        await task
+        return
+    say(f"campaign finished — dashboard still live at {url} with autopilot on (Ctrl+C to stop)")
+    await task
+
+
+def cmd_inject(args) -> None:
+    from novasurge import state_db
+    from novasurge.chaos.injectors import REGISTRY
+    from novasurge.cluster import get_cluster
+    mod = REGISTRY[args.injector]
+    ok, why = mod.compatible(get_cluster(), args.service)
+    if not ok:
+        raise SystemExit(f"{args.injector} is not applicable to {args.service}: {why}")
+    inj = mod.inject(get_cluster(), args.service)
+    manual = state_db.kv_get("manual_injections", [])
+    manual.append(inj.to_dict())
+    state_db.kv_set("manual_injections", manual)
+    say(f"injected: {json.dumps(inj.to_dict(), default=str)}")
+    say("a running `serve` (autopilot on) will detect and heal it; `python -m novasurge revert` undoes it")
+
+
+def cmd_revert(_args) -> None:
+    from novasurge import state_db
+    from novasurge.chaos.injectors import REGISTRY, Injection
+    from novasurge.cluster import get_cluster
+    manual = state_db.kv_get("manual_injections", [])
+    for raw in manual:
+        inj = Injection.from_dict(raw)
+        try:
+            say(f"reverting {inj.injector} on {inj.service}: {REGISTRY[inj.injector].reverse(get_cluster(), inj)}")
+        except Exception as exc:  # noqa: BLE001
+            say(f"could not revert {inj.injector} on {inj.service}: {exc}")
+    state_db.kv_set("manual_injections", [])
+    if not manual:
+        say("no manual injections recorded")
+
+
+def cmd_status(_args) -> None:
+    import httpx
+    from novasurge import infra, state_db
+    from novasurge.ml.train import model_card_path, models_present
+    print(f"  docker            {'running' if infra.docker_ok() else 'NOT RUNNING'}")
+    exists = infra.docker_ok() and infra.cluster_exists()
+    print(f"  kind cluster      {config.CLUSTER_NAME}: {'present' if exists else 'absent'}")
+    if exists:
+        out = infra.kubectl("get", "pods", "-A", "-l", "app", "--no-headers", check=False)
+        lines = [ln.split() for ln in out.splitlines() if ln.strip()]
+        ready = sum(1 for ln in lines if len(ln) > 3 and ln[3] == "Running" and ln[2].split("/")[0] == ln[2].split("/")[1])
+        print(f"  pods              {ready}/{len(lines)} running and ready")
+    for name, base, path in (("prometheus", config.PROMETHEUS_URL, "/-/ready"),
+                             ("shopfusion", config.GATEWAY_URL, "/health"),
+                             ("novasurge api", config.API_URL, "/api/health")):
+        try:
+            ok = httpx.get(base + path, timeout=3).status_code == 200
+        except httpx.HTTPError:
+            ok = False
+        print(f"  {name:<17} {'up' if ok else 'down'}  ({base})")
+    if models_present():
+        card = json.loads(model_card_path().read_text())
+        print(f"  models            trained {card['created_at'][:19]} on "
+              f"{sum(card['data']['samples_per_service'].values())} samples; threshold "
+              f"{card['iforest']['threshold']:.4f}")
+    else:
+        print("  models            not trained")
+    c = state_db.latest_campaign()
+    if c:
+        score = (c.get("report") or {}).get("resilience_score")
+        print(f"  last campaign     {c['id']} {c['status']} score={score}")
+
+
+def cmd_report(_args) -> None:
+    latest = config.REPORTS_DIR / "LATEST.md"
+    print(latest.read_text(encoding="utf-8") if latest.exists() else "no campaign report yet")
+
+
+def cmd_down(args) -> None:
+    from novasurge import infra
+    if args.delete:
+        say(f"deleting kind cluster '{config.CLUSTER_NAME}'")
+        infra.delete_cluster()
+    elif infra.cluster_exists():
+        say("pausing the cluster (state kept; `up` resumes it in seconds)")
+        infra.run(["docker", "stop", f"{config.CLUSTER_NAME}-control-plane"], quiet=True)
+
+
+def build_dashboard() -> None:
+    npm = shutil.which("npm")
+    if not npm:
+        raise SystemExit("Node.js/npm not found — install Node 20+ to build the dashboard (a prebuilt copy "
+                         "ships in dashboard/dist)")
+    src = config.REPO_ROOT / "dashboard"
+    work = config.NOVASURGE_HOME / "dashboard-build"
+    say(f"building the dashboard in {work} (outside the repo, so node_modules never lands in a synced folder)")
+    work.mkdir(parents=True, exist_ok=True)
+    for item in ("src", "public"):
+        if (work / item).exists():
+            shutil.rmtree(work / item)
+        shutil.copytree(src / item, work / item)
+    for f in ("index.html", "package.json", "package-lock.json", "vite.config.js", "tailwind.config.js",
+              "postcss.config.js", "eslint.config.js"):
+        if (src / f).exists():
+            shutil.copy2(src / f, work / f)
+    if not (work / "node_modules").exists():
+        subprocess.run([npm, "ci", "--no-audit", "--no-fund"], cwd=work, check=True, shell=sys.platform == "win32")
+    subprocess.run([npm, "run", "build"], cwd=work, check=True, shell=sys.platform == "win32")
+    if config.DASHBOARD_DIST.exists():
+        shutil.rmtree(config.DASHBOARD_DIST)
+    shutil.copytree(work / "dist", config.DASHBOARD_DIST)
+    say(f"dashboard built -> {config.DASHBOARD_DIST}")
+
+
+def cmd_dashboard_build(_args) -> None:
+    build_dashboard()
+
+
+def cmd_test(args) -> None:
+    import pytest
+    raise SystemExit(pytest.main(["-q", str(config.REPO_ROOT / "tests"), *args.pytest_args]))
+
+
+# ── parser ───────────────────────────────────────────────────────────────────
+def main(argv: list[str] | None = None) -> None:
+    _utf8_console()
+    logging.basicConfig(level=os.environ.get("NOVASURGE_LOG", "WARNING"),
+                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    p = argparse.ArgumentParser(prog="novasurge", description="Autonomous chaos engineering & self-healing")
+    sub = p.add_subparsers(dest="command", required=True)
+
+    def plan_args(sp):
+        sp.add_argument("--rounds", type=int, help="only the first N rounds of the plan")
+        sp.add_argument("--plan", help="campaign plan JSON (default config/campaign.json)")
+        sp.add_argument("--injector", help="run a single round with this injector")
+        sp.add_argument("--target", help="target service for --injector (default: strategy picks)")
+
+    sp = sub.add_parser("up", help="create/update cluster and deploy")
+    sp.add_argument("--rebuild", action="store_true", help="force rebuilding all images")
+    sp.add_argument("--skip-models", action="store_true", help="do not train models if missing")
+    sp.set_defaults(fn=cmd_up)
+
+    sp = sub.add_parser("train", help="train detection models on live telemetry")
+    sp.add_argument("--minutes", type=int, default=BASELINE_MINUTES)
+    sp.add_argument("--include-recorded", action="store_true",
+                    help="also train the forecaster on telemetry recorded during past campaigns")
+    sp.add_argument("--no-wait", action="store_true")
+    sp.set_defaults(fn=cmd_train)
+
+    sp = sub.add_parser("serve", help="run API + dashboard")
+    sp.add_argument("--port", type=int, default=config.API_PORT)
+    sp.add_argument("--no-autopilot", action="store_true")
+    sp.add_argument("--no-browser", action="store_true")
+    sp.set_defaults(fn=cmd_serve)
+
+    sp = sub.add_parser("campaign", help="run a chaos campaign")
+    plan_args(sp)
+    sp.add_argument("--dry-run", action="store_true", help="simulate (no cluster changes)")
+    sp.set_defaults(fn=cmd_campaign)
+
+    sp = sub.add_parser("demo", help="everything end-to-end")
+    plan_args(sp)
+    sp.add_argument("--rebuild", action="store_true")
+    sp.add_argument("--no-browser", action="store_true")
+    sp.add_argument("--exit-after", action="store_true", help="stop the server when the campaign ends")
+    sp.set_defaults(fn=cmd_demo)
+
+    sp = sub.add_parser("inject", help="inject one fault manually")
+    sp.add_argument("injector", choices=["pod_deletion", "cpu_throttle", "network_partition",
+                                         "latency_injection", "replica_reduction"])
+    sp.add_argument("service")
+    sp.set_defaults(fn=cmd_inject)
+
+    sub.add_parser("revert", help="revert manual injections").set_defaults(fn=cmd_revert)
+    sub.add_parser("status", help="component health").set_defaults(fn=cmd_status)
+    sub.add_parser("report", help="print latest campaign report").set_defaults(fn=cmd_report)
+    sp = sub.add_parser("down", help="pause or delete the cluster")
+    sp.add_argument("--delete", action="store_true")
+    sp.set_defaults(fn=cmd_down)
+    sub.add_parser("dashboard-build", help="rebuild the dashboard").set_defaults(fn=cmd_dashboard_build)
+    sp = sub.add_parser("test", help="run tests")
+    sp.add_argument("pytest_args", nargs="*")
+    sp.set_defaults(fn=cmd_test)
+
+    args = p.parse_args(argv)
+    try:
+        args.fn(args)
+    except KeyboardInterrupt:
+        say("interrupted")
+    except Exception as exc:  # noqa: BLE001
+        from novasurge.infra import InfraError
+        if isinstance(exc, InfraError):
+            say(f"ERROR: {exc}")
+            raise SystemExit(1) from None
+        raise

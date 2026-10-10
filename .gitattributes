@@ -1,0 +1,7 @@
+# Normalise text to LF in the repo; shell scripts must stay LF even on Windows
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.sh text eol=lf
+*.pt binary
+*.joblib binary
+*.png binary
