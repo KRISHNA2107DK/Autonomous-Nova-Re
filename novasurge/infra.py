@@ -196,7 +196,9 @@ def ensure_cluster() -> bool:
     """Returns True if a new cluster was created."""
     if cluster_exists():
         say(f"kind cluster '{config.CLUSTER_NAME}' already running")
-        if not cluster_id():
+        running = run(["docker", "inspect", "-f", "{{.State.Running}}", f"{config.CLUSTER_NAME}-control-plane"],
+                      check=False, capture=True).stdout.strip()
+        if running != "true":
             say("cluster node container is stopped; starting it")
             run(["docker", "start", f"{config.CLUSTER_NAME}-control-plane"])
             time.sleep(10)
