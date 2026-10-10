@@ -72,7 +72,8 @@ def fast_options():
     )
 
 
-async def run_campaign(plan: list[dict], echo: bool = True, isolate: bool = True) -> dict:
+async def run_campaign(plan: list[dict], echo: bool = True, isolate: bool = True,
+                       use_llm: bool = True) -> dict:
     from novasurge.cluster import set_cluster
     from novasurge.ml.detector import Detector
     from novasurge.monitor import Monitor
@@ -92,6 +93,6 @@ async def run_campaign(plan: list[dict], echo: bool = True, isolate: bool = True
         for _ in range(3):
             await monitor.next_tick(timeout=10)
         return await Campaign(monitor, cluster, plan=plan, options=fast_options(), mode="dry-run",
-                              echo=echo).run()
+                              echo=echo, use_llm=use_llm).run()
     finally:
         await monitor.stop()

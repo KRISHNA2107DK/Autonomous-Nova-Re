@@ -87,6 +87,28 @@ SCORE      TTD / TTM / TTR vs SLA, real user impact, RCA correctness vs the know
 A watchdog aborts the experiment (immediate revert) if synthetic users see >50 %
 failures for more than 4 minutes.
 
+### Chaos Planner agent — which fault, on which service
+
+Each round the **Chaos Planner** (`novasurge/chaos/planner.py`) picks the fault *and* the service:
+
+1. It lists every applicable (fault, service) pair and gives each one facts: services that depend on it,
+   services it depends on, business impact, user traffic share, **minutes since this exact pair was last
+   injected** (from the history of all campaigns), times tried, and how the last attempt went.
+2. A rule-based score ranks them: staleness 30 %, dependents 20 %, past weakness 15 %, impact 15 %,
+   users 10 %, dependencies 10 %, minus a variety penalty for a fault type or service already used this campaign.
+3. The top 10 go to an **LLM** (one API call per round), which answers `{"candidate_id", "reason"}`. The answer is
+   validated against the list. With no key, an API error, a rate limit or an invalid answer, the top rule-based
+   pick is used, so a campaign never breaks. The choice and its reason appear in the reasoning feed, tagged LLM or rules.
+
+Set it up once (Groq recommended for its generous free tier; Gemini also supported):
+
+```powershell
+.\nova.ps1 agent-key groq     # paste the key (hidden); stored in %LOCALAPPDATA%\NovaSurge\llm.env, never in the repo
+.\nova.ps1 agent-test         # one real call to verify
+```
+
+`.\nova.ps1 campaign --no-llm` uses the rule-based planner only; `--fixed` runs the old one-of-each-fault order.
+
 ### Chaos experiments
 
 | Injector | Real mechanism | Expected diagnosis | Playbook (primary → fallback) |

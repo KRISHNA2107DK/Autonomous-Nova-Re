@@ -301,6 +301,29 @@ def recent_events(limit: int = 50, after_id: int = 0) -> list[dict]:
     return out
 
 
+def fault_history() -> dict[tuple[str, str], dict]:
+    """Per (injector, target): when it was last injected, how often, and how the last attempt went."""
+    with connect() as c:
+        rows = c.execute("SELECT data FROM rounds WHERE injector IS NOT NULL AND target IS NOT NULL").fetchall()
+    out: dict[tuple[str, str], dict] = {}
+    for r in rows:
+        rec = json.loads(r["data"])
+        at = rec.get("injected_at")
+        if not at:
+            continue
+        key = (rec["injector"], rec["target"])
+        h = out.setdefault(key, {"count": 0, "last_at": None})
+        h["count"] += 1
+        if h["last_at"] is None or at > h["last_at"]:
+            sla = rec.get("sla") or {}
+            h.update(last_at=at, last_status=rec.get("status"),
+                     last_detected=bool(rec.get("detected_at")),
+                     last_recovery_met=sla.get("recovery_met"),
+                     last_diagnosis_correct=rec.get("diagnosis_correct"),
+                     last_ttr_seconds=sla.get("ttr_seconds"))
+    return out
+
+
 CHAOS_PHASES = ("INJECT", "REMEDIATE", "TEARDOWN", "AUTOPILOT", "RECOVERED", "FAILED")
 
 

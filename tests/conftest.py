@@ -17,6 +17,13 @@ import pytest
 from novasurge import config
 
 
+@pytest.fixture(scope="session", autouse=True)
+def no_llm_calls():
+    """Tests never spend real API calls; the planner's LLM path is tested with a fake client."""
+    import os
+    os.environ["NOVASURGE_LLM_PROVIDER"] = "none"
+
+
 @pytest.fixture(scope="session")
 def sim_home():
     base = config.NOVASURGE_HOME / "test-runs"

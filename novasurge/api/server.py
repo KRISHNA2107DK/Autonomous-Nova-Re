@@ -60,6 +60,7 @@ log = logging.getLogger("novasurge.api")
 class CampaignRequest(BaseModel):
     rounds: int | None = None
     plan: list[dict] | None = None
+    use_llm: bool = True
 
 
 class AutopilotRequest(BaseModel):
@@ -254,6 +255,14 @@ def create_app(autopilot: bool = True, start_monitor: bool = True) -> FastAPI:
     def events(after: int = 0, limit: int = 100):
         return state_db.recent_events(limit=min(limit, 500), after_id=after)
 
+    @app.get("/api/agent")
+    def agent():
+        from novasurge import llm
+        cfg = llm.load_config()
+        return {"llm_configured": cfg is not None, "provider": cfg.provider if cfg else None,
+                "model": cfg.model if cfg else None, "calls_today": llm.usage_today(),
+                "daily_cap": cfg.daily_cap if cfg else None}
+
     @app.get("/api/model")
     def model():
         m = hub.monitor
@@ -290,9 +299,10 @@ def create_app(autopilot: bool = True, start_monitor: bool = True) -> FastAPI:
         if req and req.rounds:
             plan = plan[: req.rounds]
         for spec in plan:
-            if spec.get("injector") not in INJECTORS:
+            if spec.get("injector", "auto") != "auto" and spec.get("injector") not in INJECTORS:
                 raise HTTPException(400, f"unknown injector {spec.get('injector')}")
-        hub.campaign = Campaign(m, get_cluster(), plan=plan, options=CampaignOptions(), mode="live", echo=False)
+        hub.campaign = Campaign(m, get_cluster(), plan=plan, options=CampaignOptions(), mode="live", echo=False,
+                                use_llm=req.use_llm if req else True)
         hub.campaign_task = asyncio.create_task(hub.campaign.run())
         return {"campaign_id": hub.campaign.id, "rounds": len(plan)}
 

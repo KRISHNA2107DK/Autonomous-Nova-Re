@@ -31,6 +31,7 @@ from novasurge import config, state_db, topology
 from novasurge.blast_radius import preflight
 from novasurge.chaos.injectors import REGISTRY as INJECTORS
 from novasurge.chaos.injectors import Injection
+from novasurge.chaos.planner import ChaosPlanner
 from novasurge.chaos.strategy import select_target
 from novasurge.healer import HealOptions, Healer
 from novasurge.monitor import Monitor
@@ -40,7 +41,11 @@ from novasurge.sla_tracker import evaluate_round, scorecard
 
 log = logging.getLogger("novasurge.orchestrator")
 
-DEFAULT_PLAN = [
+# "injector": "auto" -> the Chaos Planner agent chooses both the fault and the service each round.
+DEFAULT_PLAN = [{"injector": "auto", "target": "auto"} for _ in range(5)]
+
+# One round per fault type in a fixed order (targets still chosen by the strategy).
+FIXED_PLAN = [
     {"injector": "pod_deletion", "target": "auto"},
     {"injector": "cpu_throttle", "target": "auto"},
     {"injector": "network_partition", "target": "auto"},
@@ -71,7 +76,8 @@ def _now() -> datetime:
 
 class Campaign:
     def __init__(self, monitor: Monitor, cluster, plan: list[dict] | None = None,
-                 options: CampaignOptions | None = None, mode: str = "live", echo: bool = True):
+                 options: CampaignOptions | None = None, mode: str = "live", echo: bool = True,
+                 use_llm: bool = True):
         self.id = f"c-{_now():%Y%m%d-%H%M%S}-{uuid.uuid4().hex[:4]}"
         self.monitor = monitor
         self.cluster = cluster
@@ -81,6 +87,8 @@ class Campaign:
         self.narrator = Narrator(self.id, echo=echo)
         self.rounds: list[dict] = []
         self.targeted: set[str] = set()
+        self.chosen: list[tuple[str, str]] = []
+        self.planner = ChaosPlanner(use_llm=use_llm)
         self.stop_requested = False
 
     # ── campaign ─────────────────────────────────────────────────────────────
@@ -90,7 +98,7 @@ class Campaign:
         state_db.kv_set("campaign", {"id": self.id, "status": "RUNNING", "round": 0,
                                      "total_rounds": len(self.plan), "phase": "STARTING"})
         self.narrator.say("CAMPAIGN", f"Campaign {self.id} starting: {len(self.plan)} rounds "
-                                      f"({', '.join(r['injector'] for r in self.plan)}).")
+                                      f"({', '.join(r.get('injector', 'auto') for r in self.plan)}).")
         if self.monitor.detector is None:
             raise RuntimeError(self.monitor.model_error or "detector unavailable")
         status = "COMPLETED"
@@ -129,10 +137,28 @@ class Campaign:
 
     # ── round ────────────────────────────────────────────────────────────────
     async def run_round(self, n: int, spec: dict) -> dict:
+        self.narrator.round = n
+        plan = None
+        if spec.get("injector", "auto") == "auto":
+            self._status(n, "PLANNING")
+            snap0, det0 = await self._fresh_tick()
+            health = {s: (det0.services[s].status if det0 else "unknown") for s in topology.SERVICES}
+            plan = await asyncio.to_thread(self.planner.decide, self.cluster, list(self.chosen), n,
+                                           len(self.plan), health)
+            if plan is None:
+                self.narrator.say("STRATEGY", "Chaos Planner found no applicable (fault, service) pair; "
+                                              "skipping round.")
+                rec = {"round": n, "campaign_id": self.id, "injector": None, "target": None, "status": "SKIPPED"}
+                state_db.save_round(self.id, rec)
+                return rec
+            who = f"LLM agent ({plan.model})" if plan.decided_by == "llm" else "rule-based planner"
+            note = f" [LLM unavailable: {plan.fallback_reason}]" if plan.fallback_reason else ""
+            self.narrator.say("STRATEGY", f"Chaos Planner — {who} chose {plan.injector} on {plan.target}: "
+                                          f"{plan.reason}{note}", plan.target, plan.to_dict())
+            spec = {"injector": plan.injector, "target": plan.target}
         injector_name = spec["injector"]
         mod = INJECTORS[injector_name]
-        self.narrator.round = n
-        rec: dict = {"round": n, "campaign_id": self.id, "injector": injector_name,
+        rec: dict = {"round": n, "campaign_id": self.id, "injector": injector_name, "planner": plan.to_dict() if plan else None,
                      "expected_signature": mod.EXPECTED_SIGNATURE, "requested_target": spec.get("target", "auto"),
                      "target": None, "status": "PENDING", "timeline": []}
 
@@ -170,6 +196,7 @@ class Campaign:
                 return rec
         rec["target"] = target
         self.targeted.add(target)
+        self.chosen.append((injector_name, target))
 
         # 2. steady-state gate
         pf = await self._steady_state_gate(target, injector_name, baseline_rps.get(target))
@@ -394,7 +421,7 @@ def render_markdown(campaign_id: str, rounds: list[dict], report: dict) -> str:
         acts = [a["remediator"] + ("✓" if a.get("verified") else "✗") for a in r.get("remediations") or []]
         ui = r.get("user_impact") or {}
         lines.append(
-            f"| {r['round']} | {r['injector']} | {r.get('target')} | {rca.get('anomaly_type', '—')} | "
+            f"| {r['round']} | {r.get('injector') or '—'} | {r.get('target')} | {rca.get('anomaly_type', '—')} | "
             f"{rca.get('origin', '—')} | {', '.join(acts) or '—'} | {sla.get('ttd_seconds', '—')}s | "
             f"{sla.get('ttr_seconds', '—')}s | {'MET' if sla.get('recovery_met') else 'MISS'} | "
             f"{(ui.get('failure_ratio') or 0):.1%} | {r.get('status')} |")

@@ -165,17 +165,20 @@ def _print_scorecard(report: dict | None) -> None:
 
 
 def _plan(args) -> list[dict]:
-    from novasurge.orchestrator import load_plan
+    from novasurge.orchestrator import FIXED_PLAN, load_plan
     if args.injector:
         return [{"injector": args.injector, "target": args.target or "auto"}]
-    plan = load_plan(config.REPO_ROOT / args.plan if args.plan else None)
+    if getattr(args, "fixed", False):
+        plan = list(FIXED_PLAN)
+    else:
+        plan = load_plan(config.REPO_ROOT / args.plan if args.plan else None)
     return plan[: args.rounds] if args.rounds else plan
 
 
 def cmd_campaign(args) -> None:
     plan = _plan(args)
     if args.dry_run:
-        report = asyncio.run(_run_simulated_campaign(plan))
+        report = asyncio.run(_run_simulated_campaign(plan, not args.no_llm))
         _print_scorecard(report)
         return
     url = config.API_URL
@@ -183,18 +186,19 @@ def cmd_campaign(args) -> None:
         import httpx
         say(f"submitting the campaign to the running NovaSurge server at {url} (watch the dashboard)")
         after = (httpx.get(f"{url}/api/events", params={"limit": 1}).json() or [{"id": 0}])[-1]["id"]
-        resp = httpx.post(f"{url}/api/campaign/start", json={"plan": plan}, timeout=10)
+        resp = httpx.post(f"{url}/api/campaign/start", json={"plan": plan, "use_llm": not args.no_llm},
+                          timeout=10)
         if resp.status_code != 200:
             raise SystemExit(f"server refused the campaign: {resp.text}")
         cid = resp.json()["campaign_id"]
         result = asyncio.run(_tail_campaign(url, cid, after))
         _print_scorecard((result or {}).get("report"))
         return
-    report = asyncio.run(_run_local_campaign(plan))
+    report = asyncio.run(_run_local_campaign(plan, not args.no_llm))
     _print_scorecard(report)
 
 
-async def _run_local_campaign(plan: list[dict]) -> dict:
+async def _run_local_campaign(plan: list[dict], use_llm: bool = True) -> dict:
     from novasurge.cluster import get_cluster
     from novasurge.monitor import Monitor
     from novasurge.orchestrator import Campaign
@@ -206,15 +210,15 @@ async def _run_local_campaign(plan: list[dict]) -> dict:
         say("warming up the detector (LSTM needs 60s of history for forecasts; detection is live immediately)")
         for _ in range(3):
             await monitor.next_tick(timeout=30)
-        return await Campaign(monitor, get_cluster(), plan=plan).run()
+        return await Campaign(monitor, get_cluster(), plan=plan, use_llm=use_llm).run()
     finally:
         await monitor.stop()
 
 
-async def _run_simulated_campaign(plan: list[dict]) -> dict:
+async def _run_simulated_campaign(plan: list[dict], use_llm: bool = True) -> dict:
     from novasurge import sim
     say("DRY RUN — simulated cluster and telemetry; nothing touches Kubernetes")
-    return await sim.run_campaign(plan)
+    return await sim.run_campaign(plan, use_llm=use_llm)
 
 
 def cmd_demo(args) -> None:
@@ -245,7 +249,7 @@ async def _demo(args) -> None:
     plan = _plan(args)
     async with httpx.AsyncClient(timeout=10) as client:
         after = ((await client.get(f"{url}/api/events", params={"limit": 1})).json() or [{"id": 0}])[-1]["id"]
-        resp = await client.post(f"{url}/api/campaign/start", json={"plan": plan})
+        resp = await client.post(f"{url}/api/campaign/start", json={"plan": plan, "use_llm": not args.no_llm})
         resp.raise_for_status()
         cid = resp.json()["campaign_id"]
     say(f"campaign {cid} started: {len(plan)} rounds")
@@ -289,6 +293,34 @@ def cmd_revert(_args) -> None:
     state_db.kv_set("manual_injections", [])
     if not manual:
         say("no manual injections recorded")
+
+
+def cmd_agent_key(args) -> None:
+    import getpass
+    from novasurge import llm
+    key = getpass.getpass(f"Paste your {args.provider} API key (input hidden), then press Enter: ").strip()
+    if not key:
+        raise SystemExit("no key entered")
+    llm.save_key(args.provider, key)
+    say(f"saved to {llm.ENV_FILE} (outside the repository). Verify with: .\\nova.ps1 agent-test")
+
+
+def cmd_agent_test(_args) -> None:
+    from novasurge import llm
+    from novasurge.chaos.planner import ChaosPlanner, build_candidates
+    from novasurge.cluster import get_cluster
+    cfg = llm.load_config()
+    if cfg is None:
+        raise SystemExit("no LLM key configured - run: .\\nova.ps1 agent-key groq")
+    say(f"provider {cfg.provider}, model {cfg.model}, calls today {llm.usage_today()}/{cfg.daily_cap}")
+    cands = build_candidates(get_cluster(), [])
+    say(f"{len(cands)} applicable (fault, service) pairs; top rule-based pick: "
+        f"{cands[0].injector} on {cands[0].service} (score {cands[0].rule_score:.3f})")
+    d = ChaosPlanner(use_llm=True).decide(get_cluster(), [], 1, 5)
+    if d.decided_by == "llm":
+        say(f"LLM agent OK -> {d.injector} on {d.target}: {d.reason}")
+    else:
+        say(f"LLM call FAILED ({d.fallback_reason}); the rule-based fallback would choose {d.injector} on {d.target}")
 
 
 def cmd_status(_args) -> None:
@@ -387,6 +419,9 @@ def main(argv: list[str] | None = None) -> None:
         sp.add_argument("--plan", help="campaign plan JSON (default config/campaign.json)")
         sp.add_argument("--injector", help="run a single round with this injector")
         sp.add_argument("--target", help="target service for --injector (default: strategy picks)")
+        sp.add_argument("--fixed", action="store_true",
+                        help="one round per fault type in a fixed order instead of the Chaos Planner agent")
+        sp.add_argument("--no-llm", action="store_true", help="planner uses its rule-based score only")
 
     sp = sub.add_parser("up", help="create/update cluster and deploy")
     sp.add_argument("--rebuild", action="store_true", help="force rebuilding all images")
@@ -425,6 +460,11 @@ def main(argv: list[str] | None = None) -> None:
     sp.set_defaults(fn=cmd_inject)
 
     sub.add_parser("revert", help="revert manual injections").set_defaults(fn=cmd_revert)
+    sp = sub.add_parser("agent-key", help="store the LLM API key for the Chaos Planner agent")
+    sp.add_argument("provider", choices=["groq", "gemini"])
+    sp.set_defaults(fn=cmd_agent_key)
+    sub.add_parser("agent-test", help="ask the Chaos Planner agent for one decision (1 API call)"
+                   ).set_defaults(fn=cmd_agent_test)
     sub.add_parser("status", help="component health").set_defaults(fn=cmd_status)
     sub.add_parser("report", help="print latest campaign report").set_defaults(fn=cmd_report)
     sp = sub.add_parser("down", help="pause or delete the cluster")
