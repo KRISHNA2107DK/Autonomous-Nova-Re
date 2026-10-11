@@ -11,6 +11,9 @@ AutoHeal command line.
     python -m novasurge revert          revert manual injections
     python -m novasurge status          health of every component
     python -m novasurge report          print the latest campaign report
+    python -m novasurge logs            write incident logs (failures, remediations, reasoning) for every campaign
+    python -m novasurge ledger          rebuild the incident ledger workbook + CSVs (reports/ledger/)
+    python -m novasurge db-repair       rebuild a damaged state database (stop `serve` first)
     python -m novasurge down [--delete] pause the cluster (or delete it)
     python -m novasurge test            run the test-suite
     python -m novasurge dashboard-build rebuild the React dashboard
@@ -162,6 +165,12 @@ def _print_scorecard(report: dict | None) -> None:
           f"RCA accuracy {report.get('rca_origin_accuracy', 0):.0%} · classification "
           f"{report.get('classification_accuracy', 0):.0%}")
     say(f"full report: {config.REPORTS_DIR / 'LATEST.md'}")
+    cid = (report or {}).get("campaign_id")
+    if cid:
+        say(f"incident log (every failure, remediation and its reasoning): "
+            f"{config.REPORTS_DIR / cid / 'INCIDENT-LOG.md'}")
+    say(f"incident ledger (all incidents, all campaigns): "
+        f"{config.REPORTS_DIR / 'ledger' / 'AUTOHEAL-INCIDENT-LEDGER.xlsx'}")
 
 
 def _plan(args) -> list[dict]:
@@ -361,6 +370,179 @@ def cmd_report(_args) -> None:
     print(latest.read_text(encoding="utf-8") if latest.exists() else "no campaign report yet")
 
 
+def cmd_logs(args) -> None:
+    """Incident logs: rebuild them for every campaign, or print one."""
+    from novasurge import incident_log
+    if args.campaign:
+        cid = args.campaign
+        if cid == "latest":
+            dirs = sorted(d for d in config.REPORTS_DIR.iterdir()
+                          if d.is_dir() and d.name.startswith("c-") and (d / "rounds.json").exists())
+            if not dirs:
+                print("no campaign reports yet")
+                return
+            cid = dirs[-1].name
+        path = incident_log.write(cid)
+        if not path:
+            print(f"no report found for campaign {cid}")
+            return
+        print(path.read_text(encoding="utf-8"))
+        say(f"saved to {path}")
+        return
+    written = incident_log.rebuild_all()
+    for p in written:
+        print(f"  {p}")
+    say(f"{len(written)} incident log(s) written · live event files: reports/<campaign>/events.jsonl, "
+        f"autopilot: reports/autopilot/<date>.jsonl")
+    cmd_ledger(args)
+
+
+def cmd_ledger(_args) -> None:
+    """Rebuild the incident ledger: one workbook (+ CSVs) with every incident ever recorded."""
+    from novasurge import ledger
+    tables = ledger.collect()
+    path = ledger.rebuild()
+    if path is None:
+        raise SystemExit("could not write the incident ledger (see the warning above)")
+    say(f"incident ledger: {path}")
+    say(f"  {len(tables['incidents'])} incidents · {len(tables['steps'])} remediation steps · "
+        f"{len(tables['affected'])} affected-service rows · {len(tables['timeline'])} reasoning events · "
+        f"{len(tables['campaigns'])} campaigns")
+    say(f"  CSV copies in {path.parent}")
+
+
+def cmd_db_repair(_args) -> None:
+    """Rebuild the SQLite state database from every readable row plus the durable event files."""
+    import re
+    import shutil
+    import sqlite3
+    from datetime import datetime
+
+    src = config.DB_PATH
+    if not src.exists():
+        raise SystemExit(f"no database at {src}")
+    if _api_up(config.API_URL):
+        raise SystemExit("AutoHeal is running: stop `serve` first (Ctrl+C in its terminal) and close any "
+                         "DBeaver connection to novasurge.db, then run db-repair again")
+    probe = src.with_name(src.name + ".lockcheck")
+    try:
+        src.rename(probe)          # Windows refuses this while any program holds the file open
+        probe.rename(src)
+    except PermissionError:
+        raise SystemExit(f"{src.name} is open in another program (usually DBeaver): disconnect it there "
+                         f"(right-click the connection → Disconnect) or close DBeaver, then run db-repair again")
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup = src.parent / f"corrupt-{stamp}"
+    backup.mkdir()
+    for f in src.parent.glob(src.name + "*"):
+        if f.is_file():
+            shutil.copy2(f, backup / f.name)
+    say(f"backed up the current database to {backup}")
+
+    old = sqlite3.connect(str(backup / src.name))
+    new_path = src.with_name("novasurge.repaired.db")
+    new_path.unlink(missing_ok=True)
+    new = sqlite3.connect(str(new_path))
+    schema = old.execute("SELECT type, name, sql FROM sqlite_master WHERE sql IS NOT NULL "
+                         "AND name NOT LIKE 'sqlite_%' ORDER BY type = 'index'").fetchall()
+    for _, _, sql in schema:
+        new.execute(sql)
+    tables = [n for t, n, _ in schema if t == "table"]
+
+    def rows_of(table: str) -> tuple[list[str], list[tuple], int]:
+        cols = [r[1] for r in old.execute(f'PRAGMA table_info("{table}")')]
+        try:
+            return cols, old.execute(f'SELECT {", ".join(cols)} FROM "{table}"').fetchall(), 0
+        except sqlite3.DatabaseError:
+            pass
+        try:
+            top = old.execute(f'SELECT max(rowid) FROM "{table}"').fetchone()[0] or 0
+        except sqlite3.DatabaseError:
+            top = 100000
+        good, bad = [], 0
+        for rid in range(1, top + 1):
+            try:
+                row = old.execute(f'SELECT {", ".join(cols)} FROM "{table}" WHERE rowid = ?', (rid,)).fetchone()
+            except sqlite3.DatabaseError:
+                bad += 1
+                continue
+            if row:
+                good.append(row)
+        return cols, good, bad
+
+    for table in tables:
+        cols, rows, bad = rows_of(table)
+        if table == "events":
+            continue
+        new.executemany(f'INSERT INTO "{table}" ({", ".join(cols)}) VALUES ({", ".join("?" * len(cols))})', rows)
+        say(f"  {table:<22} {len(rows)} rows recovered" + (f", {bad} unreadable" if bad else ""))
+
+    # events: readable rows + every durable event file, de-duplicated, re-numbered in time order
+    if "events" in tables:
+        _, rows, bad = rows_of("events")
+        merged: dict[tuple, tuple] = {}
+        for _id, at, cid, rnd, phase, svc, msg, data in rows:
+            merged[(str(at)[:19], phase, msg)] = (at, cid, rnd, phase, svc, msg, data)
+        daily = re.compile(r"\d{4}-\d{2}-\d{2}\.jsonl$")
+        files = list(config.REPORTS_DIR.glob("*/events.jsonl")) + [
+            f for f in (config.REPORTS_DIR / "autopilot").glob("*.jsonl") if daily.match(f.name)]
+        from_files = 0
+        for f in files:
+            for line in f.read_text(encoding="utf-8").splitlines():
+                try:
+                    e = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                key = (str(e.get("at"))[:19], e.get("phase"), e.get("message"))
+                if key not in merged and e.get("at") and e.get("phase") and e.get("message"):
+                    merged[key] = (e["at"], e.get("campaign_id"), e.get("round"), e["phase"], e.get("service"),
+                                   e["message"], json.dumps(e["data"], default=str) if e.get("data") else None)
+                    from_files += 1
+        new.executemany("INSERT INTO events (at, campaign_id, round_num, phase, service, message, data) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)", sorted(merged.values(), key=lambda r: str(r[0])))
+        say(f"  {'events':<22} {len(merged)} rows ({len(rows)} readable in the old database, "
+            f"{bad} unreadable there, {from_files} restored from the durable event files)")
+    # campaigns and rounds that only survive in reports/ (written after the database stopped keeping them)
+    if {"campaigns", "rounds"} <= set(tables):
+        known = {r[0] for r in new.execute("SELECT id FROM campaigns")}
+        restored = 0
+        for d in sorted(config.REPORTS_DIR.glob("c-*")):
+            if d.name in known or not (d / "rounds.json").exists():
+                continue
+            try:
+                rounds = json.loads((d / "rounds.json").read_text(encoding="utf-8"))
+                card = json.loads((d / "scorecard.json").read_text(encoding="utf-8")) \
+                    if (d / "scorecard.json").exists() else None
+            except (OSError, json.JSONDecodeError):
+                continue
+            starts = sorted(t["at"] for r in rounds for t in r.get("timeline") or [])
+            new.execute("INSERT INTO campaigns (id, started_at, finished_at, status, mode, plan, report) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (d.name, starts[0] if starts else "", (card or {}).get("generated_at"),
+                         "COMPLETED" if card else "STOPPED", "live",
+                         json.dumps([{"injector": r.get("injector"), "target": r.get("target")} for r in rounds]),
+                         json.dumps(card) if card else None))
+            for r in rounds:
+                new.execute("INSERT OR IGNORE INTO rounds (campaign_id, round_num, injector, target, status, "
+                            "updated_at, data) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            (d.name, r.get("round"), r.get("injector"), r.get("target"), r.get("status"),
+                             (r.get("timeline") or [{}])[-1].get("at") or "", json.dumps(r, default=str)))
+            restored += 1
+        if restored:
+            say(f"  {'campaigns + rounds':<22} {restored} campaign(s) restored from reports/")
+    new.commit()
+    check = new.execute("PRAGMA integrity_check").fetchone()[0]
+    new.close()
+    old.close()
+    if check != "ok":
+        raise SystemExit(f"the rebuilt database failed its integrity check ({check}); the original is untouched")
+    for f in src.parent.glob(src.name + "*"):
+        if f.is_file():
+            f.unlink()
+    new_path.replace(src)
+    say(f"database rebuilt and verified (integrity_check ok): {src}")
+
+
 def cmd_down(args) -> None:
     from novasurge import infra
     if args.delete:
@@ -467,6 +649,13 @@ def main(argv: list[str] | None = None) -> None:
                    ).set_defaults(fn=cmd_agent_test)
     sub.add_parser("status", help="component health").set_defaults(fn=cmd_status)
     sub.add_parser("report", help="print latest campaign report").set_defaults(fn=cmd_report)
+    sp = sub.add_parser("logs", help="incident logs: every injected failure, remediation and its reasoning")
+    sp.add_argument("--campaign", help="print one campaign's log (a campaign id, or 'latest')")
+    sp.set_defaults(fn=cmd_logs)
+    sub.add_parser("ledger", help="rebuild the incident ledger workbook + CSVs (reports/ledger/)"
+                   ).set_defaults(fn=cmd_ledger)
+    sub.add_parser("db-repair", help="rebuild a damaged state database (stop `serve` first)"
+                   ).set_defaults(fn=cmd_db_repair)
     sp = sub.add_parser("down", help="pause or delete the cluster")
     sp.add_argument("--delete", action="store_true")
     sp.set_defaults(fn=cmd_down)

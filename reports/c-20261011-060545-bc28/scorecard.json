@@ -1,0 +1,38 @@
+{
+  "generated_at": "2026-10-11T06:14:13.747037+00:00",
+  "resilience_score": 80.6,
+  "verdict": "GOOD \u2014 reliable recovery with minor SLA or diagnosis misses",
+  "components": {
+    "recovery_sla": 28.0,
+    "detection_sla": 16.0,
+    "remediation_effectiveness": 16.0,
+    "diagnosis_accuracy": 12.0,
+    "user_protection": 8.62
+  },
+  "rounds_executed": 5,
+  "recovered": 4,
+  "masked": 0,
+  "detected": 4,
+  "rca_origin_accuracy": 0.8,
+  "classification_accuracy": 0.8,
+  "mean_ttd_seconds": 8.57,
+  "mean_ttr_seconds": 42.49,
+  "max_ttr_seconds": 55.0,
+  "mean_user_failure_ratio": 0.069,
+  "services_tested": [
+    "api-gateway",
+    "notification-service",
+    "order-service",
+    "payment-service",
+    "product-service"
+  ],
+  "failure_types_covered": [
+    "cpu_throttle",
+    "latency_injection",
+    "network_partition",
+    "pod_deletion",
+    "replica_reduction"
+  ],
+  "guardrails_triggered": 0,
+  "campaign_id": "c-20261011-060545-bc28"
+}

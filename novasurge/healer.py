@@ -66,6 +66,17 @@ def _iso(dt: datetime | None = None) -> str:
     return (dt or datetime.now(timezone.utc)).isoformat()
 
 
+def _plan_steps(decision, role: str, reason: str) -> list[tuple[str, str, str]]:
+    """(action, role, why) for the decided action and its fallback."""
+    steps = []
+    if decision.action:
+        steps.append((decision.action, role, reason))
+    if decision.fallback:
+        steps.append((decision.fallback, "fallback",
+                      f"Playbook fallback for {decision.anomaly_type} if {decision.action} cannot be verified."))
+    return steps
+
+
 class Healer:
     def __init__(self, monitor: Monitor, cluster, narrator: Narrator, owner: str,
                  campaign_id: str | None = None, options: HealOptions | None = None):
@@ -110,15 +121,17 @@ class Healer:
             self.narrator.say("FAILED", f"Remediation of {origin} could not proceed: {decision.action}.", origin)
             return out
 
-        queue = [a for a in (decision.action, decision.fallback) if a]
+        # Each queued step carries why it is being tried, so the incident ledger can show the full chain.
+        queue = _plan_steps(decision, "primary", " ".join(decision.reasoning))
         tried: set[tuple[str, str]] = set()
         for attempt_no in range(MAX_ATTEMPTS):
-            queue = [a for a in queue if (origin, a) not in tried]
+            queue = [q for q in queue if (origin, q[0]) not in tried]
             if not queue:
                 break
-            action = queue.pop(0)
+            action, role, why = queue.pop(0)
             tried.add((origin, action))
-            ok, at = await self._attempt(origin, action, rca.anomaly_type, round_num, out)
+            ok, at = await self._attempt(origin, action, rca, round_num, out,
+                                         {"step": attempt_no + 1, "role": role, "reason": why})
             if ok:
                 out.healed_by = "primary" if attempt_no == 0 else "fallback"
                 out.mitigated_at = at
@@ -136,10 +149,15 @@ class Healer:
                 out.guardrails += [asdict(g) for g in decision.guardrails]
                 if not decision.actionable:
                     break
-                queue = [a for a in (decision.action, decision.fallback) if a]
+                queue = _plan_steps(decision, "re-diagnosis",
+                                    f"{action} did not restore the previous origin; re-diagnosis moved the root "
+                                    f"cause to {origin}. " + " ".join(decision.reasoning))
             elif queue:
+                queue[0] = (queue[0][0], "fallback",
+                            f"{action} did not verifiably restore {origin} and re-diagnosis still points at "
+                            f"{origin}; escalating to the playbook fallback {queue[0][0]}.")
                 self.narrator.say("DECIDE", f"{action} did not restore {origin}; escalating to fallback "
-                                            f"{queue[0]}.", origin)
+                                            f"{queue[0][0]}.", origin)
         if not out.healed_by:
             self.narrator.say("FAILED", f"All remediation options exhausted without verified recovery "
                                         f"(last diagnosis: {origin}).", origin)
@@ -174,19 +192,24 @@ class Healer:
             return decision
         return decision
 
-    async def _attempt(self, origin: str, action: str, anomaly_type: str, round_num: int | None,
-                       out: HealOutcome) -> tuple[bool, str | None]:
+    async def _attempt(self, origin: str, action: str, rca: RcaResult, round_num: int | None,
+                       out: HealOutcome, step: dict) -> tuple[bool, str | None]:
         fn = REGISTRY[action]
+        anomaly_type = rca.anomaly_type
         ctx = RemediationContext(self.cluster, self.monitor.telemetry,
                                  timeout_s=self.opts.remediation_timeout_s, poll_s=self.opts.poll_s)
+        meta = step | {"diagnosis": {"origin": origin, "anomaly_type": anomaly_type,
+                                     "confidence": rca.confidence}}
         state_db.mark_active(origin, action, self.owner)
         rem_id = state_db.record_remediation_attempt(self.campaign_id, round_num, origin, anomaly_type, action)
-        self.narrator.say("REMEDIATE", f"Executing {action} on {origin}.", origin)
+        self.narrator.say("REMEDIATE", f"Executing {action} on {origin} (step {step['step']}, {step['role']}).",
+                          origin, meta)
+        started = _iso()
         try:
             result = await fn(origin, ctx)
             self.narrator.say("REMEDIATE", remediation_text(result.to_dict()), origin, result.to_dict())
             verified, at = (await self._verify_functional(origin)) if result.success else (False, None)
-            attempt = result.to_dict() | {"verified": verified, "verified_at": at}
+            attempt = result.to_dict() | {"verified": verified, "verified_at": at} | meta
             out.attempts.append(attempt)
             state_db.complete_remediation(rem_id, verified, result.duration_s,
                                           None if verified else result.summary)
@@ -194,7 +217,8 @@ class Healer:
         except Exception as exc:  # noqa: BLE001 - a crashing remediator is a failed attempt
             log.exception("remediator %s crashed", action)
             out.attempts.append({"remediator": action, "service": origin, "success": False,
-                                 "summary": f"crashed: {exc}", "verified": False})
+                                 "summary": f"crashed: {exc}", "verified": False, "started_at": started,
+                                 "completed_at": _iso()} | meta)
             state_db.complete_remediation(rem_id, False, 0.0, f"crashed: {exc}")
             self.narrator.say("FAILED", f"{action} crashed: {exc}", origin)
             return False, None

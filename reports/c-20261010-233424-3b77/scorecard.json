@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-10-10T23:41:30.519932+00:00",
+  "resilience_score": 99.6,
+  "verdict": "EXCELLENT \u2014 every fault detected, diagnosed and healed within SLA",
+  "components": {
+    "recovery_sla": 35.0,
+    "detection_sla": 20.0,
+    "remediation_effectiveness": 20.0,
+    "diagnosis_accuracy": 15.0,
+    "user_protection": 9.58
+  },
+  "rounds_executed": 5,
+  "recovered": 5,
+  "masked": 0,
+  "detected": 5,
+  "rca_origin_accuracy": 1.0,
+  "classification_accuracy": 1.0,
+  "mean_ttd_seconds": 8.84,
+  "mean_ttr_seconds": 36.0,
+  "max_ttr_seconds": 50.01,
+  "mean_user_failure_ratio": 0.0212,
+  "services_tested": [
+    "api-gateway",
+    "payment-service"
+  ],
+  "failure_types_covered": [
+    "cpu_throttle",
+    "latency_injection",
+    "network_partition",
+    "pod_deletion",
+    "replica_reduction"
+  ],
+  "guardrails_triggered": 0,
+  "campaign_id": "c-20261010-233424-3b77"
+}

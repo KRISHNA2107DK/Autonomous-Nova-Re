@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-10-11T07:31:25.053011+00:00",
+  "resilience_score": 77.9,
+  "verdict": "GOOD \u2014 reliable recovery with minor SLA or diagnosis misses",
+  "components": {
+    "recovery_sla": 23.33,
+    "detection_sla": 20.0,
+    "remediation_effectiveness": 13.33,
+    "diagnosis_accuracy": 12.5,
+    "user_protection": 8.7
+  },
+  "rounds_executed": 3,
+  "recovered": 2,
+  "masked": 0,
+  "detected": 3,
+  "rca_origin_accuracy": 1.0,
+  "classification_accuracy": 0.667,
+  "mean_ttd_seconds": 9.83,
+  "mean_ttr_seconds": 35.0,
+  "max_ttr_seconds": 49.99,
+  "mean_user_failure_ratio": 0.0648,
+  "services_tested": [
+    "order-service",
+    "payment-service"
+  ],
+  "failure_types_covered": [
+    "latency_injection",
+    "network_partition",
+    "pod_deletion"
+  ],
+  "guardrails_triggered": 1,
+  "campaign_id": "c-20261011-071521-1560"
+}

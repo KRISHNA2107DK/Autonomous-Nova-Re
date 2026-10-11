@@ -23,7 +23,8 @@ STAMP="$HOME_DIR/requirements.sha256"
 HASH="$("$PY" -c "import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest().upper())" "$REPO/requirements.txt")"
 if [[ ! -f "$STAMP" || "$(cat "$STAMP")" != "$HASH" ]]; then
   echo "[novasurge] installing Python dependencies (first run downloads ~250 MB)"
-  "$PY" -m pip install --disable-pip-version-check -q --upgrade pip
+  "$PY" -m pip --version >/dev/null 2>&1 || "$PY" -m ensurepip --upgrade >/dev/null   # pip missing or broken: restore it
+  "$PY" -m pip install --disable-pip-version-check -q --upgrade "pip<26.2"
   "$PY" -m pip install --disable-pip-version-check -q -r "$REPO/requirements.txt"
   echo "$HASH" > "$STAMP"
 fi

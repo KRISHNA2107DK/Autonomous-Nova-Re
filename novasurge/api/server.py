@@ -42,14 +42,16 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from novasurge import __version__, config, state_db, topology
+from novasurge import __version__, config, ledger, state_db, topology
 from novasurge.chaos.injectors import REGISTRY as INJECTORS
+from novasurge.chaos.injectors import Injection
 from novasurge.cluster import get_cluster
 from novasurge.healer import Healer
 from novasurge.ml.detector import DetectionResult
 from novasurge.monitor import Monitor
 from novasurge.orchestrator import Campaign, CampaignOptions, load_plan
 from novasurge.reasoning import Narrator, detection_text
+from novasurge.sla_tracker import evaluate_round
 from novasurge.telemetry import Snapshot
 
 log = logging.getLogger("novasurge.api")
@@ -120,9 +122,11 @@ class Hub:
     async def _autopilot_heal(self, det: DetectionResult) -> None:
         narrator = Narrator(None, echo=False)
         payload = det.anomaly_payload()
+        started_at = datetime.now(timezone.utc).isoformat()
         narrator.say("AUTOPILOT", "Autopilot engaged — " + detection_text(payload, None),
                      payload["affected_service"], payload)
         healer = Healer(self.monitor, get_cluster(), narrator, owner="autopilot")
+        outcome = None
         try:
             outcome = await healer.heal(det)
             narrator.say("AUTOPILOT", f"Autopilot finished: {outcome.status} "
@@ -133,6 +137,57 @@ class Hub:
             narrator.say("FAILED", f"Autopilot error: {exc}")
         finally:
             self.autopilot_cooldown_until = time.monotonic() + 30
+            try:
+                rec = await asyncio.to_thread(_autopilot_record, payload, outcome, started_at,
+                                              self.monitor.telemetry)
+                await asyncio.to_thread(ledger.record_autopilot, rec)
+            except Exception:  # noqa: BLE001 - recording must never break healing
+                log.exception("could not record the autopilot incident")
+
+
+def _autopilot_record(payload: dict, outcome, started_at: str, telemetry) -> dict:
+    """One durable incident record for an autopilot heal, linked to a manual injection when there was one."""
+    out = outcome.to_dict() if outcome else {"status": "FAILED", "attempts": []}
+    rca = out.get("rca") or {}
+    detected_at = payload.get("detected_at") or payload.get("timestamp") or started_at
+    services = {rca.get("origin"), payload.get("affected_service")}
+    injection = None
+    for raw in reversed(state_db.kv_get("manual_injections", [])):
+        try:
+            age = (datetime.fromisoformat(detected_at) - datetime.fromisoformat(raw["injected_at"])).total_seconds()
+        except (KeyError, TypeError, ValueError):
+            continue
+        if raw.get("service") in services and 0 <= age <= 900:
+            injection = raw
+            break
+    rec = {"incident_id": f"AP-{started_at[:19].replace(':', '').replace('-', '')}-{payload.get('affected_service')}",
+           "started_at": started_at, "status": out.get("status"),
+           "injector": (injection or {}).get("injector"), "target": (injection or {}).get("service"),
+           "injection": injection, "injected_at": (injection or {}).get("injected_at"),
+           "detected_at": detected_at, "detection": payload,
+           "rca": out.get("rca"), "initial_rca": out.get("initial_rca"), "decision": out.get("decision"),
+           "remediations": out.get("attempts"), "healed_by": out.get("healed_by"),
+           "mitigated_at": out.get("mitigated_at"), "recovered_at": out.get("recovered_at"),
+           "guardrails": out.get("guardrails"),
+           "note": "" if injection else "Anomaly not caused by an AutoHeal injection; healed by autopilot."}
+    if injection:
+        mod = INJECTORS.get(injection["injector"])
+        rec["expected_signature"] = getattr(mod, "EXPECTED_SIGNATURE", None)
+        rec["diagnosis_correct"] = rca.get("origin") == injection["service"]
+        rec["classification_correct"] = rca.get("anomaly_type") == rec["expected_signature"]
+        try:
+            rec["fault_cleared"] = not mod.still_active(get_cluster(), Injection.from_dict(injection))
+        except Exception:  # noqa: BLE001
+            pass
+    rec["sla"] = evaluate_round(rec)
+    try:
+        start = datetime.fromisoformat(rec["injected_at"] or detected_at).timestamp()
+        end = datetime.fromisoformat(rec["recovered_at"] or datetime.now(timezone.utc).isoformat()).timestamp()
+        rec["user_impact"] = telemetry.user_impact(start, end)
+    except Exception:  # noqa: BLE001
+        pass
+    rec["finished_at"] = datetime.now(timezone.utc).isoformat()
+    return rec
 
 
 def build_frame(snap: Snapshot, det: DetectionResult | None, events: list[dict], hub: Hub) -> dict:
@@ -329,6 +384,8 @@ def create_app(autopilot: bool = True, start_monitor: bool = True) -> FastAPI:
         if not ok:
             raise HTTPException(409, f"{req.injector} not applicable to {req.service}: {why}")
         inj = await asyncio.to_thread(mod.inject, get_cluster(), req.service)
+        if inj.success:
+            state_db.kv_set("manual_injections", state_db.kv_get("manual_injections", []) + [inj.to_dict()])
         Narrator(None, echo=False).say("INJECT", f"Manual fault injected: {req.injector} into {req.service}"
                                                  f" — autopilot {'will heal it' if hub.autopilot else 'is OFF'}.",
                                        req.service, inj.to_dict())

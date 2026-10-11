@@ -27,7 +27,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from novasurge import config, state_db, topology
+from novasurge import config, incident_log, ledger, state_db, topology
 from novasurge.blast_radius import preflight
 from novasurge.chaos.injectors import REGISTRY as INJECTORS
 from novasurge.chaos.injectors import Injection
@@ -400,6 +400,8 @@ def _write_report(campaign_id: str, rounds: list[dict], report: dict) -> None:
         latest.write_text(render_markdown(campaign_id, rounds, report), encoding="utf-8")
     except OSError as exc:
         log.warning("could not write report: %s", exc)
+    incident_log.write(campaign_id, rounds, report)
+    ledger.rebuild()
 
 
 def render_markdown(campaign_id: str, rounds: list[dict], report: dict) -> str:

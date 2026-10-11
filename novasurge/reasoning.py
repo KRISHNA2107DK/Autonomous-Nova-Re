@@ -3,12 +3,18 @@ Narration: turns structured decisions into plain-English reasoning events.
 
 Deterministic templates (no LLM, fully offline) — but every number in the text
 comes from live data; nothing is a canned placeholder.
-Events are persisted in SQLite and streamed to the dashboard's reasoning feed.
+Events are persisted in SQLite, streamed to the dashboard's reasoning feed and
+appended to a durable per-campaign file (see incident_log).
 """
 
 from __future__ import annotations
 
-from novasurge import state_db
+import logging
+import sqlite3
+
+from novasurge import incident_log, state_db
+
+log = logging.getLogger(__name__)
 
 PHASES = ("CAMPAIGN", "PREFLIGHT", "STRATEGY", "INJECT", "DETECT", "RCA", "DECIDE", "GUARDRAIL",
           "REMEDIATE", "VERIFY", "RECOVERED", "FAILED", "TEARDOWN", "SUMMARY", "AUTOPILOT")
@@ -21,8 +27,15 @@ class Narrator:
         self.round: int | None = None
 
     def say(self, phase: str, message: str, service: str | None = None, data: dict | None = None) -> dict:
-        ev = state_db.add_event(phase, message, campaign_id=self.campaign_id, round_num=self.round,
-                                service=service, data=data)
+        try:
+            ev = state_db.add_event(phase, message, campaign_id=self.campaign_id, round_num=self.round,
+                                    service=service, data=data)
+        except sqlite3.Error as exc:
+            # The durable event file below still records it; a damaged or locked DB must never stop a run.
+            log.warning("could not store event in SQLite (%s); kept in the event file", exc)
+            ev = {"id": None, "at": state_db.iso(), "campaign_id": self.campaign_id, "round": self.round,
+                  "phase": phase, "service": service, "message": message, "data": data}
+        incident_log.append_event(ev)
         if self.echo:
             tag = f"R{self.round}" if self.round else "--"
             print(f"  [{tag} {phase:<9}] {message}", flush=True)

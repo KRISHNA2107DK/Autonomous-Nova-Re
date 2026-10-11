@@ -222,7 +222,19 @@ RCA origin accuracy **100 %** · fault classification accuracy **100 %**
 The only points lost are *user protection* (8.9/10): partitioning the API gateway is a total outage for every
 shopper until the policy is rolled back (~18 s), and that is honestly counted. Full report:
 [`reports/LATEST.md`](reports/LATEST.md); raw round records and scorecard in `reports/c-20261010-202240-d5ad/`.
-Every new campaign writes its own folder and updates `LATEST.md`.
+Every new campaign writes its own folder and updates `LATEST.md`. Each folder also holds `INCIDENT-LOG.md` — every
+injected failure, detection, root-cause analysis, decision and remediation with the reasoning behind it — and
+`events.jsonl`, the narration appended live. Events outside campaigns (autopilot) go to `reports/autopilot/<date>.jsonl`.
+`python -m novasurge logs` regenerates every incident log; `logs --campaign latest` prints the newest one.
+
+**Incident ledger** — `reports/ledger/AUTOHEAL-INCIDENT-LEDGER.xlsx` (plus the same tables as CSV beside it) records,
+for every campaign round and every autopilot heal: the failure injected and why it was chosen, when it was injected and
+detected, every service affected and its role, the root cause and its reasoning, the remedy suggested and its fallback,
+every remediator applied in order with its result, verification and — if it failed — the remediator that ran next,
+and the final result, SLA and user impact. Sheets: *Incidents*, *Remediation Steps*, *Affected Services*,
+*Reasoning Timeline*, *Campaigns*, *About*. It is rebuilt from the durable files after every campaign and autopilot
+heal, so it is complete and readable while AutoHeal is stopped; `python -m novasurge ledger` rebuilds it by hand.
+If the SQLite state database is ever damaged, stop `serve` and run `python -m novasurge db-repair`.
 
 ---
 

@@ -1,0 +1,17 @@
+﻿Campaign,Started (UTC),Finished (UTC),Rounds,Resilience score,Verdict,Recovery SLA /35,Detection SLA /20,Effectiveness /20,Diagnosis /15,User protection /10,Mean TTD (s),Mean TTR (s),RCA accuracy,Classification accuracy,Mean user failure %
+c-20261010-202240-d5ad,2026-10-10 20:22:40,2026-10-10 20:29:25,5,98.9,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,20.0,20.0,15.0,8.91,8.86,36.0,1.0,1.0,5.47
+c-20261010-210835-1993,2026-10-10 21:08:35,2026-10-10 21:15:38,5,98.5,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,20.0,20.0,15.0,8.47,8.82,38.0,1.0,1.0,7.67
+c-20261010-211746-a9ae,2026-10-10 21:17:46,2026-10-10 21:24:53,5,94.5,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,20.0,18.0,13.5,8.05,8.82,39.0,1.0,0.8,9.74
+c-20261010-212640-8667,2026-10-10 21:26:40,2026-10-10 21:33:33,5,98.4,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,20.0,20.0,15.0,8.36,9.84,37.0,1.0,1.0,8.22
+c-20261010-233424-3b77,2026-10-10 23:34:26,2026-10-10 23:41:30,5,99.6,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,20.0,20.0,15.0,9.58,8.84,36.0,1.0,1.0,2.12
+c-20261011-002156-7879,2026-10-11 00:21:57,2026-10-11 00:31:16,5,87.2,GOOD — reliable recovery with minor SLA or diagnosis misses,28.0,20.0,17.0,13.5,8.71,10.82,31.25,0.8,1.0,6.45
+c-20261011-003847-4377,2026-10-11 00:38:52,2026-10-11 00:46:01,5,98.9,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,20.0,20.0,15.0,8.94,8.81,35.0,1.0,1.0,5.3
+c-20261011-005421-d315,2026-10-11 00:54:27,2026-10-11 01:01:26,5,99.4,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,20.0,20.0,15.0,9.44,7.83,35.0,1.0,1.0,2.79
+c-20261011-041213-4e97,2026-10-11 04:12:17,2026-10-11 04:19:25,5,99.6,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,20.0,20.0,15.0,9.64,8.81,36.0,1.0,1.0,1.78
+c-20261011-060545-bc28,2026-10-11 06:05:50,2026-10-11 06:14:13,5,80.6,GOOD — reliable recovery with minor SLA or diagnosis misses,28.0,16.0,16.0,12.0,8.62,8.57,42.49,0.8,0.8,6.9
+c-20261011-070048-d4fe,2026-10-11 07:00:52,2026-10-11 07:08:05,5,99.6,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,20.0,20.0,15.0,9.57,9.82,37.0,1.0,1.0,2.17
+c-20261011-071521-1560,2026-10-11 07:15:28,2026-10-11 07:31:25,5,77.9,GOOD — reliable recovery with minor SLA or diagnosis misses,23.33,20.0,13.33,12.5,8.7,9.83,35.0,1.0,0.667,6.48
+c-20261011-075136-7fdf,2026-10-11 07:51:39,2026-10-11 07:58:43,5,98.8,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,20.0,20.0,15.0,8.84,8.86,36.0,1.0,1.0,5.78
+c-20261011-084859-6e59,2026-10-11 08:49:05,2026-10-11 08:56:43,5,95.0,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,16.0,20.0,15.0,9.02,18.76,33.0,1.0,1.0,4.89
+c-20261011-094619-5eb3,2026-10-11 09:46:25,2026-10-11 09:54:08,5,80.6,GOOD — reliable recovery with minor SLA or diagnosis misses,28.0,16.0,16.0,12.0,8.62,9.82,33.74,0.8,0.8,6.88
+c-20261011-095621-cefd,2026-10-11 09:56:25,2026-10-11 10:03:38,5,99.5,"EXCELLENT — every fault detected, diagnosed and healed within SLA",35.0,20.0,20.0,15.0,9.52,8.85,36.0,1.0,1.0,2.4

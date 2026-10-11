@@ -38,7 +38,13 @@ $req = Join-Path $Repo "requirements.txt"
 $hash = (Get-FileHash $req -Algorithm SHA256).Hash
 if (-not (Test-Path $Stamp) -or (Get-Content $Stamp) -ne $hash) {
     Write-Host "[novasurge] installing Python dependencies (first run downloads ~250 MB)"
-    & $Py -m pip install --disable-pip-version-check -q --upgrade pip
+    # pip missing or broken: restore it (native stderr must not trip $ErrorActionPreference = "Stop")
+    $ErrorActionPreference = "Continue"
+    & $Py -m pip --version 2>$null | Out-Null
+    $pipOk = ($LASTEXITCODE -eq 0)
+    if (-not $pipOk) { & $Py -m ensurepip --upgrade 2>$null | Out-Null }
+    $ErrorActionPreference = "Stop"
+    & $Py -m pip install --disable-pip-version-check -q --upgrade "pip<26.2"
     & $Py -m pip install --disable-pip-version-check -q -r $req
     if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
     Set-Content -Path $Stamp -Value $hash

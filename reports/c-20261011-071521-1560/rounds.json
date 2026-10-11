@@ -1,0 +1,1997 @@
+[
+  {
+    "round": 1,
+    "campaign_id": "c-20261011-071521-1560",
+    "injector": "latency_injection",
+    "planner": {
+      "injector": "latency_injection",
+      "target": "order-service",
+      "decided_by": "llm",
+      "model": "groq/openai/gpt-oss-120b",
+      "reason": "Long idle time, high business impact, and previous mitigated outcome reveals detection gaps in order-service latency injection.",
+      "fallback_reason": null,
+      "candidates": [
+        {
+          "id": 1,
+          "fault": "latency_injection",
+          "service": "order-service",
+          "what_it_does": "tc netem egress delay on one replica",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [
+            "product-service",
+            "payment-service"
+          ],
+          "business_impact_1_to_10": 8,
+          "user_traffic_share": 0.4,
+          "minutes_since_last_tried": 408.7,
+          "times_tried": 1,
+          "last_outcome": "mitigated",
+          "rule_score": 0.602
+        },
+        {
+          "id": 2,
+          "fault": "replica_reduction",
+          "service": "api-gateway",
+          "what_it_does": "Clamp HPA to min=max=1",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 376.2,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.52
+        },
+        {
+          "id": 3,
+          "fault": "latency_injection",
+          "service": "api-gateway",
+          "what_it_does": "tc netem egress delay on one replica",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 375.2,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.52
+        },
+        {
+          "id": 4,
+          "fault": "pod_deletion",
+          "service": "payment-service",
+          "what_it_does": "Force-delete one Ready pod (grace period 0)",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 10,
+          "user_traffic_share": 0.35,
+          "minutes_since_last_tried": 377.2,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.47
+        },
+        {
+          "id": 5,
+          "fault": "network_partition",
+          "service": "product-service",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 391.6,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.453
+        },
+        {
+          "id": 6,
+          "fault": "cpu_throttle",
+          "service": "product-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 379.1,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.45
+        },
+        {
+          "id": 7,
+          "fault": "cpu_throttle",
+          "service": "order-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [
+            "product-service",
+            "payment-service"
+          ],
+          "business_impact_1_to_10": 8,
+          "user_traffic_share": 0.4,
+          "minutes_since_last_tried": 393.4,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.448
+        },
+        {
+          "id": 8,
+          "fault": "network_partition",
+          "service": "payment-service",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 10,
+          "user_traffic_share": 0.35,
+          "minutes_since_last_tried": 180.2,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.414
+        },
+        {
+          "id": 9,
+          "fault": "replica_reduction",
+          "service": "payment-service",
+          "what_it_does": "Clamp HPA to min=max=1",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 10,
+          "user_traffic_share": 0.35,
+          "minutes_since_last_tried": 176.6,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.413
+        },
+        {
+          "id": 10,
+          "fault": "network_partition",
+          "service": "api-gateway",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 64.6,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.403
+        }
+      ]
+    },
+    "expected_signature": "high_latency",
+    "requested_target": "order-service",
+    "target": "order-service",
+    "status": "RECOVERED",
+    "timeline": [
+      {
+        "at": "2026-10-11T07:15:28.563152+00:00",
+        "phase": "PREFLIGHT"
+      },
+      {
+        "at": "2026-10-11T07:15:45.030083+00:00",
+        "phase": "INJECTING"
+      },
+      {
+        "at": "2026-10-11T07:15:45.119689+00:00",
+        "phase": "DETECTING"
+      },
+      {
+        "at": "2026-10-11T07:16:00.024658+00:00",
+        "phase": "RECOVERING"
+      },
+      {
+        "at": "2026-10-11T07:17:00.016678+00:00",
+        "phase": "RECOVERED"
+      }
+    ],
+    "preflight": {
+      "target": "order-service",
+      "injector": "latency_injection",
+      "dependents": [
+        "api-gateway"
+      ],
+      "blast_score": 1,
+      "estimated_affected_users_pct": 100,
+      "business_impact": 8,
+      "system_health_pct": 100.0,
+      "target_ready": "2/2",
+      "load_ratio": 0.88,
+      "injection_risk": "MEDIUM",
+      "go_nogo": "GO",
+      "nogo_reasons": [],
+      "sla_target_seconds": 120,
+      "evaluated_at": "2026-10-11T07:15:45.017909+00:00"
+    },
+    "injection": {
+      "injector": "latency_injection",
+      "service": "order-service",
+      "success": true,
+      "injected_at": "2026-10-11T07:15:45.060602+00:00",
+      "target": "order-service-848895fdff-l8zbh",
+      "details": {
+        "pod": "order-service-848895fdff-l8zbh",
+        "delay": "200ms",
+        "jitter": "50ms",
+        "command": "tc qdisc replace dev eth0 root netem delay 200ms 50ms distribution normal",
+        "replicas_ready": 2
+      },
+      "error": null
+    },
+    "injected_at": "2026-10-11T07:15:45.060602+00:00",
+    "detected_at": "2026-10-11T07:15:59.889412+00:00",
+    "detection": {
+      "anomaly_detected": true,
+      "timestamp": "2026-10-11T07:15:59.889412+00:00",
+      "affected_service": "order-service",
+      "anomaly_type": "high_latency",
+      "severity_score": 0.9271,
+      "iforest_score": -0.0107,
+      "threshold": 0.1031,
+      "feature_deltas": {
+        "request_rate": -0.54,
+        "error_rate": 0.0,
+        "p99_latency_ms": 25.0,
+        "inflight": 1.35,
+        "cpu_cores": -0.47,
+        "cpu_throttle_ratio": 0.0,
+        "memory_mb": -0.75,
+        "caller_error_rate": 0.0,
+        "caller_p99_ms": 25.0
+      },
+      "evidence": [
+        "p99_latency_ms=795.01ms vs baseline 246.95ms (z=+14.8)",
+        "caller_p99_ms=1937.51ms vs baseline 246.99ms (z=+25.0)"
+      ],
+      "flags": [
+        "iforest",
+        "zscore:p99_latency_ms",
+        "zscore:caller_p99_ms"
+      ],
+      "detected_at": "2026-10-11T07:15:59.889412+00:00",
+      "first_flagged_at": "2026-10-11T07:15:54.877592+00:00",
+      "lstm": {
+        "predicted_score_60s": -0.0179,
+        "predicted_anomaly": true,
+        "forecast_scores": [
+          -0.0034,
+          -0.0175,
+          -0.0224,
+          -0.0259,
+          -0.0327,
+          -0.0214,
+          -0.0168,
+          -0.023,
+          -0.0248,
+          -0.0228,
+          -0.0235,
+          -0.0179
+        ],
+        "residual_z": 27.937,
+        "ready": true
+      },
+      "anomalous_services": [
+        {
+          "service": "order-service",
+          "severity": 0.9271,
+          "anomaly_type": "high_latency",
+          "first_flagged_at": "2026-10-11T07:15:54.877592+00:00"
+        }
+      ]
+    },
+    "rca": {
+      "origin": "order-service",
+      "anomaly_type": "high_latency",
+      "confidence": 0.783,
+      "call_path": [
+        "api-gateway",
+        "order-service"
+      ],
+      "affected": [
+        "api-gateway",
+        "product-service",
+        "order-service"
+      ],
+      "evidence": [
+        "p99_latency_ms=795.01ms vs baseline 246.95ms (z=+14.8)",
+        "caller_p99_ms=1937.51ms vs baseline 246.99ms (z=+25.0)"
+      ],
+      "candidates": [
+        {
+          "service": "order-service",
+          "score": 2.895,
+          "reasons": [
+            "severity 0.92",
+            "its dependencies ['product-service'] are also anomalous (likely a victim)",
+            "explains anomalies in callers ['api-gateway']",
+            "earliest onset",
+            "its calls to product-service take 187ms longer than product-service itself needs to serve them (caller-side or network problem)"
+          ]
+        },
+        {
+          "service": "product-service",
+          "score": 1.147,
+          "reasons": [
+            "severity 0.52",
+            "its own server-side latency/errors are normal; the degradation is only visible from callers (network or caller-side problem)",
+            "no anomalous dependency explains it",
+            "explains anomalies in callers ['api-gateway', 'order-service']"
+          ]
+        },
+        {
+          "service": "api-gateway",
+          "score": 0.379,
+          "reasons": [
+            "severity 0.94",
+            "its dependencies ['product-service', 'order-service'] are also anomalous (likely a victim)"
+          ]
+        }
+      ],
+      "narrative": "Root cause localised to order-service (high latency, confidence 78%). api-gateway also deviate as callers of order-service: its failure propagates to them. product-service deviate because requests from order-service stopped reaching them. Signal: p99_latency_ms=795.01ms vs baseline 246.95ms (z=+14.8); caller_p99_ms=1937.51ms vs baseline 246.99ms (z=+25.0)."
+    },
+    "initial_rca": {
+      "origin": "order-service",
+      "anomaly_type": "high_latency",
+      "confidence": 0.783,
+      "call_path": [
+        "api-gateway",
+        "order-service"
+      ],
+      "affected": [
+        "api-gateway",
+        "product-service",
+        "order-service"
+      ],
+      "evidence": [
+        "p99_latency_ms=795.01ms vs baseline 246.95ms (z=+14.8)",
+        "caller_p99_ms=1937.51ms vs baseline 246.99ms (z=+25.0)"
+      ],
+      "candidates": [
+        {
+          "service": "order-service",
+          "score": 2.895,
+          "reasons": [
+            "severity 0.92",
+            "its dependencies ['product-service'] are also anomalous (likely a victim)",
+            "explains anomalies in callers ['api-gateway']",
+            "earliest onset",
+            "its calls to product-service take 187ms longer than product-service itself needs to serve them (caller-side or network problem)"
+          ]
+        },
+        {
+          "service": "product-service",
+          "score": 1.147,
+          "reasons": [
+            "severity 0.52",
+            "its own server-side latency/errors are normal; the degradation is only visible from callers (network or caller-side problem)",
+            "no anomalous dependency explains it",
+            "explains anomalies in callers ['api-gateway', 'order-service']"
+          ]
+        },
+        {
+          "service": "api-gateway",
+          "score": 0.379,
+          "reasons": [
+            "severity 0.94",
+            "its dependencies ['product-service', 'order-service'] are also anomalous (likely a victim)"
+          ]
+        }
+      ],
+      "narrative": "Root cause localised to order-service (high latency, confidence 78%). api-gateway also deviate as callers of order-service: its failure propagates to them. product-service deviate because requests from order-service stopped reaching them. Signal: p99_latency_ms=795.01ms vs baseline 246.95ms (z=+14.8); caller_p99_ms=1937.51ms vs baseline 246.99ms (z=+25.0)."
+    },
+    "decision": {
+      "service": "order-service",
+      "anomaly_type": "high_latency",
+      "priority": 7.382,
+      "action": "traffic_reroute",
+      "fallback": "rolling_restart",
+      "confidence": 0.507,
+      "guardrails": [],
+      "reasoning": [
+        "order-service: high latency at severity 0.92; business impact 8/10 -> priority 7.38. Playbook: traffic_reroute, fallback rolling_restart.",
+        "Confidence in traffic_reroute: 0.51 (prior 0.70 (no history yet) x RCA 0.78 x blast factor 0.93).",
+        "Decision: traffic_reroute on order-service (fallback rolling_restart, confidence 0.51)."
+      ]
+    },
+    "remediations": [
+      {
+        "remediator": "traffic_reroute",
+        "service": "order-service",
+        "success": true,
+        "summary": "quarantined order-service-848895fdff-l8zbh (worst replica by live telemetry (p99=4600ms, next worst score 247 vs 4600)); traffic now on 2 healthy replica(s)",
+        "started_at": "2026-10-11T07:16:05.203586+00:00",
+        "completed_at": "2026-10-11T07:16:16.346141+00:00",
+        "duration_s": 11.142551700002514,
+        "details": {
+          "quarantined_pod": "order-service-848895fdff-l8zbh",
+          "selection": "worst replica by live telemetry (p99=4600ms, next worst score 247 vs 4600)",
+          "ready_pods": [
+            "order-service-848895fdff-9xflx",
+            "order-service-848895fdff-nkgrs"
+          ],
+          "quarantined_pod_deleted": true
+        },
+        "verified": true,
+        "verified_at": "2026-10-11T07:16:16.364831+00:00"
+      }
+    ],
+    "healed_by": "primary",
+    "mitigated_at": "2026-10-11T07:16:16.364831+00:00",
+    "recovered_at": "2026-10-11T07:16:49.881322+00:00",
+    "guardrails": [],
+    "teardown": {
+      "fault_still_present": false,
+      "reverse": {
+        "pod": "order-service-848895fdff-l8zbh",
+        "note": "pod no longer exists (replaced)"
+      },
+      "autoscaler": {
+        "unchanged": {
+          "minReplicas": 2,
+          "maxReplicas": 4
+        }
+      }
+    },
+    "fault_cleared": true,
+    "sla": {
+      "ttd_seconds": 14.83,
+      "ttm_seconds": 16.48,
+      "ttr_seconds": 49.99,
+      "detection_target_seconds": 35,
+      "recovery_target_seconds": 120,
+      "detection_met": true,
+      "recovery_met": true,
+      "recovery_margin_seconds": 70.01
+    },
+    "user_impact": {
+      "total_requests": 1283.6,
+      "failed_requests": 3.5,
+      "failure_ratio": 0.0027,
+      "p99_ms": 3118.7,
+      "window_seconds": 64
+    },
+    "diagnosis_correct": true,
+    "classification_correct": true
+  },
+  {
+    "round": 2,
+    "campaign_id": "c-20261011-071521-1560",
+    "injector": "pod_deletion",
+    "planner": {
+      "injector": "pod_deletion",
+      "target": "payment-service",
+      "decided_by": "llm",
+      "model": "groq/openai/gpt-oss-120b",
+      "reason": "High\u2011impact pod_deletion on payment-service, long idle time, many dependents, and fault type not yet used in this campaign.",
+      "fallback_reason": null,
+      "candidates": [
+        {
+          "id": 1,
+          "fault": "replica_reduction",
+          "service": "api-gateway",
+          "what_it_does": "Clamp HPA to min=max=1",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 378.1,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.52
+        },
+        {
+          "id": 2,
+          "fault": "pod_deletion",
+          "service": "payment-service",
+          "what_it_does": "Force-delete one Ready pod (grace period 0)",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 10,
+          "user_traffic_share": 0.35,
+          "minutes_since_last_tried": 379.1,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.47
+        },
+        {
+          "id": 3,
+          "fault": "network_partition",
+          "service": "product-service",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 393.4,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.453
+        },
+        {
+          "id": 4,
+          "fault": "cpu_throttle",
+          "service": "product-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 380.9,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.451
+        },
+        {
+          "id": 5,
+          "fault": "network_partition",
+          "service": "payment-service",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 10,
+          "user_traffic_share": 0.35,
+          "minutes_since_last_tried": 182.0,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.415
+        },
+        {
+          "id": 6,
+          "fault": "replica_reduction",
+          "service": "payment-service",
+          "what_it_does": "Clamp HPA to min=max=1",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 10,
+          "user_traffic_share": 0.35,
+          "minutes_since_last_tried": 178.4,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.414
+        },
+        {
+          "id": 7,
+          "fault": "network_partition",
+          "service": "api-gateway",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 66.4,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.404
+        },
+        {
+          "id": 8,
+          "fault": "cpu_throttle",
+          "service": "notification-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 2,
+          "user_traffic_share": 0.0,
+          "minutes_since_last_tried": null,
+          "times_tried": 0,
+          "last_outcome": null,
+          "rule_score": 0.38
+        },
+        {
+          "id": 9,
+          "fault": "network_partition",
+          "service": "notification-service",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 2,
+          "user_traffic_share": 0.0,
+          "minutes_since_last_tried": null,
+          "times_tried": 0,
+          "last_outcome": null,
+          "rule_score": 0.38
+        },
+        {
+          "id": 10,
+          "fault": "cpu_throttle",
+          "service": "payment-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 10,
+          "user_traffic_share": 0.35,
+          "minutes_since_last_tried": 71.1,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.358
+        }
+      ]
+    },
+    "expected_signature": "pod_crash",
+    "requested_target": "payment-service",
+    "target": "payment-service",
+    "status": "RECOVERED",
+    "timeline": [
+      {
+        "at": "2026-10-11T07:17:16.762775+00:00",
+        "phase": "PREFLIGHT"
+      },
+      {
+        "at": "2026-10-11T07:17:35.032897+00:00",
+        "phase": "INJECTING"
+      },
+      {
+        "at": "2026-10-11T07:17:35.127843+00:00",
+        "phase": "DETECTING"
+      },
+      {
+        "at": "2026-10-11T07:17:40.031634+00:00",
+        "phase": "RECOVERING"
+      },
+      {
+        "at": "2026-10-11T07:18:10.022349+00:00",
+        "phase": "RECOVERED"
+      }
+    ],
+    "preflight": {
+      "target": "payment-service",
+      "injector": "pod_deletion",
+      "dependents": [
+        "api-gateway",
+        "order-service"
+      ],
+      "blast_score": 2,
+      "estimated_affected_users_pct": 100,
+      "business_impact": 10,
+      "system_health_pct": 100.0,
+      "target_ready": "2/2",
+      "load_ratio": 1.03,
+      "injection_risk": "HIGH",
+      "go_nogo": "GO",
+      "nogo_reasons": [],
+      "sla_target_seconds": 90,
+      "evaluated_at": "2026-10-11T07:17:35.018683+00:00"
+    },
+    "injection": {
+      "injector": "pod_deletion",
+      "service": "payment-service",
+      "success": true,
+      "injected_at": "2026-10-11T07:17:35.069144+00:00",
+      "target": "payment-service-7745b65785-vpltn",
+      "details": {
+        "pod": "payment-service-7745b65785-vpltn",
+        "pod_ip": "10.244.0.29",
+        "ready_pods_before": 2
+      },
+      "error": null
+    },
+    "injected_at": "2026-10-11T07:17:35.069144+00:00",
+    "detected_at": "2026-10-11T07:17:39.885186+00:00",
+    "detection": {
+      "anomaly_detected": true,
+      "timestamp": "2026-10-11T07:17:39.885186+00:00",
+      "affected_service": "payment-service",
+      "anomaly_type": "network_partition",
+      "severity_score": 0.76,
+      "iforest_score": 0.1352,
+      "threshold": 0.1031,
+      "feature_deltas": {
+        "request_rate": -1.05,
+        "error_rate": 0.0,
+        "p99_latency_ms": -0.0,
+        "inflight": 0.0,
+        "cpu_cores": -0.02,
+        "cpu_throttle_ratio": 0.0,
+        "memory_mb": 0.61,
+        "caller_error_rate": 0.0,
+        "caller_p99_ms": 0.01
+      },
+      "evidence": [
+        "replicas ready 2/2 (declared minimum 2)",
+        "metrics endpoint unreachable on 67% of pods",
+        "caller_error_rate=0.0% vs baseline 0.0% (z=+0.0)",
+        "request_rate=6.19 req/s vs baseline 6.92 req/s (z=-1.1)",
+        "pods are running (no container restarts) but cannot be reached over the pod network"
+      ],
+      "flags": [
+        "replicas_lost",
+        "metrics_unreachable"
+      ],
+      "detected_at": "2026-10-11T07:17:39.885186+00:00",
+      "first_flagged_at": "2026-10-11T07:17:39.885186+00:00",
+      "lstm": {
+        "predicted_score_60s": 0.1396,
+        "predicted_anomaly": false,
+        "forecast_scores": [
+          0.132,
+          0.1343,
+          0.1313,
+          0.1333,
+          0.1355,
+          0.1379,
+          0.1367,
+          0.1368,
+          0.1404,
+          0.1399,
+          0.1409,
+          0.1396
+        ],
+        "residual_z": 1.561,
+        "ready": true
+      },
+      "anomalous_services": [
+        {
+          "service": "payment-service",
+          "severity": 0.76,
+          "anomaly_type": "network_partition",
+          "first_flagged_at": "2026-10-11T07:17:39.885186+00:00"
+        }
+      ]
+    },
+    "rca": {
+      "origin": "payment-service",
+      "anomaly_type": "network_partition",
+      "confidence": 0.953,
+      "call_path": [
+        "api-gateway",
+        "payment-service"
+      ],
+      "affected": [
+        "payment-service"
+      ],
+      "evidence": [
+        "replicas ready 2/2 (declared minimum 2)",
+        "metrics endpoint unreachable on 67% of pods",
+        "caller_error_rate=0.0% vs baseline 0.0% (z=+0.0)",
+        "request_rate=6.19 req/s vs baseline 6.92 req/s (z=-1.1)",
+        "pods are running (no container restarts) but cannot be reached over the pod network",
+        "Pod payment-service-7745b65785-vpltn: Killing \u2014 Stopping container payment-service",
+        "Pod payment-service-7745b65785-w8v4w: Unhealthy \u2014 Startup probe failed: Get \"http://10.244.0.37:8003/health\": dial tcp 10.244.0.37:8003: connect: connection refused"
+      ],
+      "candidates": [
+        {
+          "service": "payment-service",
+          "score": 4.412,
+          "reasons": [
+            "severity 0.46",
+            "no anomalous dependency explains it",
+            "earliest onset",
+            "structural fault on the service itself",
+            "Pod payment-service-7745b65785-vpltn: Killing \u2014 Stopping container payment-service",
+            "Pod payment-service-7745b65785-w8v4w: Unhealthy \u2014 Startup probe failed: Get \"http://10.244.0.37:8003/health\": dial tcp 10.244.0.37:8003: connect: connection refused"
+          ]
+        }
+      ],
+      "narrative": "Root cause localised to payment-service (network partition, confidence 95%). No other service deviates; the fault is contained to payment-service. Change evidence: Pod payment-service-7745b65785-vpltn: Killing \u2014 Stopping container payment-service; Pod payment-service-7745b65785-w8v4w: Unhealthy \u2014 Startup probe failed: Get \"http://10.244.0.37:8003/health\": dial tcp 10.244.0.37:8003: connect: connection refused."
+    },
+    "initial_rca": {
+      "origin": "payment-service",
+      "anomaly_type": "network_partition",
+      "confidence": 0.953,
+      "call_path": [
+        "api-gateway",
+        "payment-service"
+      ],
+      "affected": [
+        "payment-service"
+      ],
+      "evidence": [
+        "replicas ready 2/2 (declared minimum 2)",
+        "metrics endpoint unreachable on 67% of pods",
+        "caller_error_rate=0.0% vs baseline 0.0% (z=+0.0)",
+        "request_rate=6.19 req/s vs baseline 6.92 req/s (z=-1.1)",
+        "pods are running (no container restarts) but cannot be reached over the pod network",
+        "Pod payment-service-7745b65785-vpltn: Killing \u2014 Stopping container payment-service",
+        "Pod payment-service-7745b65785-w8v4w: Unhealthy \u2014 Startup probe failed: Get \"http://10.244.0.37:8003/health\": dial tcp 10.244.0.37:8003: connect: connection refused"
+      ],
+      "candidates": [
+        {
+          "service": "payment-service",
+          "score": 4.412,
+          "reasons": [
+            "severity 0.46",
+            "no anomalous dependency explains it",
+            "earliest onset",
+            "structural fault on the service itself",
+            "Pod payment-service-7745b65785-vpltn: Killing \u2014 Stopping container payment-service",
+            "Pod payment-service-7745b65785-w8v4w: Unhealthy \u2014 Startup probe failed: Get \"http://10.244.0.37:8003/health\": dial tcp 10.244.0.37:8003: connect: connection refused"
+          ]
+        }
+      ],
+      "narrative": "Root cause localised to payment-service (network partition, confidence 95%). No other service deviates; the fault is contained to payment-service. Change evidence: Pod payment-service-7745b65785-vpltn: Killing \u2014 Stopping container payment-service; Pod payment-service-7745b65785-w8v4w: Unhealthy \u2014 Startup probe failed: Get \"http://10.244.0.37:8003/health\": dial tcp 10.244.0.37:8003: connect: connection refused."
+    },
+    "decision": {
+      "service": "payment-service",
+      "anomaly_type": "network_partition",
+      "priority": 4.56,
+      "action": "network_policy_rollback",
+      "fallback": "rolling_restart",
+      "confidence": 0.689,
+      "guardrails": [],
+      "reasoning": [
+        "payment-service: network partition at severity 0.46; business impact 10/10 -> priority 4.56. Playbook: network_policy_rollback, fallback rolling_restart.",
+        "Confidence in network_policy_rollback: 0.69 (history 0.85 over 2 attempt(s) x RCA 0.95 x blast factor 0.85).",
+        "Decision: network_policy_rollback on payment-service (fallback rolling_restart, confidence 0.69)."
+      ]
+    },
+    "remediations": [
+      {
+        "remediator": "network_policy_rollback",
+        "service": "payment-service",
+        "success": false,
+        "summary": "no deny-all NetworkPolicy selects this service",
+        "started_at": "2026-10-11T07:17:45.162887+00:00",
+        "completed_at": "2026-10-11T07:17:45.171721+00:00",
+        "duration_s": 0.008828099998936523,
+        "details": {},
+        "verified": false,
+        "verified_at": null
+      },
+      {
+        "remediator": "rolling_restart",
+        "service": "payment-service",
+        "success": true,
+        "summary": "rolled 2 replica(s) onto the declared template",
+        "started_at": "2026-10-11T07:17:45.325009+00:00",
+        "completed_at": "2026-10-11T07:17:55.463470+00:00",
+        "duration_s": 10.138450099999318,
+        "details": {
+          "replaced": [
+            "payment-service-7745b65785-mnmnz",
+            "payment-service-7745b65785-w8v4w"
+          ],
+          "ready_pods": [
+            "payment-service-c89555bbc-jbdww",
+            "payment-service-c89555bbc-s4krb"
+          ]
+        },
+        "verified": true,
+        "verified_at": "2026-10-11T07:17:55.482232+00:00"
+      }
+    ],
+    "healed_by": "fallback",
+    "mitigated_at": "2026-10-11T07:17:55.482232+00:00",
+    "recovered_at": "2026-10-11T07:17:59.885025+00:00",
+    "guardrails": [],
+    "teardown": {
+      "fault_still_present": false,
+      "reverse": {
+        "reversible": false,
+        "note": "Kubernetes reschedules deleted pods by itself"
+      },
+      "autoscaler": {
+        "unchanged": {
+          "minReplicas": 2,
+          "maxReplicas": 4
+        }
+      }
+    },
+    "fault_cleared": true,
+    "sla": {
+      "ttd_seconds": 4.82,
+      "ttm_seconds": 15.6,
+      "ttr_seconds": 20.0,
+      "detection_target_seconds": 25,
+      "recovery_target_seconds": 90,
+      "detection_met": true,
+      "recovery_met": true,
+      "recovery_margin_seconds": 70.0
+    },
+    "user_impact": {
+      "total_requests": 481.6,
+      "failed_requests": 0.0,
+      "failure_ratio": 0.0,
+      "p99_ms": 243.7,
+      "window_seconds": 24
+    },
+    "diagnosis_correct": true,
+    "classification_correct": false
+  },
+  {
+    "round": 3,
+    "campaign_id": "c-20261011-071521-1560",
+    "injector": "network_partition",
+    "planner": {
+      "injector": "network_partition",
+      "target": "payment-service",
+      "decided_by": "llm",
+      "model": "groq/openai/gpt-oss-120b",
+      "reason": "High-impact network partition on degraded payment-service, never tried this fault type in campaign, long since last attempt, maximizes insight into critical path resilience.",
+      "fallback_reason": null,
+      "candidates": [
+        {
+          "id": 1,
+          "fault": "replica_reduction",
+          "service": "api-gateway",
+          "what_it_does": "Clamp HPA to min=max=1",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 379.2,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.521
+        },
+        {
+          "id": 2,
+          "fault": "network_partition",
+          "service": "product-service",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 394.6,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.454
+        },
+        {
+          "id": 3,
+          "fault": "cpu_throttle",
+          "service": "product-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 382.1,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.451
+        },
+        {
+          "id": 4,
+          "fault": "network_partition",
+          "service": "api-gateway",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 67.6,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.405
+        },
+        {
+          "id": 5,
+          "fault": "cpu_throttle",
+          "service": "notification-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 2,
+          "user_traffic_share": 0.0,
+          "minutes_since_last_tried": null,
+          "times_tried": 0,
+          "last_outcome": null,
+          "rule_score": 0.38
+        },
+        {
+          "id": 6,
+          "fault": "network_partition",
+          "service": "notification-service",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 2,
+          "user_traffic_share": 0.0,
+          "minutes_since_last_tried": null,
+          "times_tried": 0,
+          "last_outcome": null,
+          "rule_score": 0.38
+        },
+        {
+          "id": 7,
+          "fault": "cpu_throttle",
+          "service": "api-gateway",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 11.7,
+          "times_tried": 3,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.352
+        },
+        {
+          "id": 8,
+          "fault": "replica_reduction",
+          "service": "product-service",
+          "what_it_does": "Clamp HPA to min=max=1",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 12.7,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.283
+        },
+        {
+          "id": 9,
+          "fault": "cpu_throttle",
+          "service": "order-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [
+            "product-service",
+            "payment-service"
+          ],
+          "business_impact_1_to_10": 8,
+          "user_traffic_share": 0.4,
+          "minutes_since_last_tried": 396.4,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.199
+        },
+        {
+          "id": 10,
+          "fault": "network_partition",
+          "service": "payment-service",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 10,
+          "user_traffic_share": 0.35,
+          "minutes_since_last_tried": 183.2,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.165
+        }
+      ]
+    },
+    "expected_signature": "network_partition",
+    "requested_target": "payment-service",
+    "target": "payment-service",
+    "status": "MITIGATED",
+    "timeline": [
+      {
+        "at": "2026-10-11T07:18:26.890201+00:00",
+        "phase": "PREFLIGHT"
+      },
+      {
+        "at": "2026-10-11T07:18:45.013718+00:00",
+        "phase": "INJECTING"
+      },
+      {
+        "at": "2026-10-11T07:18:45.264681+00:00",
+        "phase": "DETECTING"
+      },
+      {
+        "at": "2026-10-11T07:18:55.021677+00:00",
+        "phase": "RECOVERING"
+      },
+      {
+        "at": "2026-10-11T07:24:50.007933+00:00",
+        "phase": "MITIGATED"
+      }
+    ],
+    "preflight": {
+      "target": "payment-service",
+      "injector": "network_partition",
+      "dependents": [
+        "api-gateway",
+        "order-service"
+      ],
+      "blast_score": 2,
+      "estimated_affected_users_pct": 100,
+      "business_impact": 10,
+      "system_health_pct": 100.0,
+      "target_ready": "2/2",
+      "load_ratio": 0.93,
+      "injection_risk": "HIGH",
+      "go_nogo": "GO",
+      "nogo_reasons": [],
+      "sla_target_seconds": 90,
+      "evaluated_at": "2026-10-11T07:18:45.000365+00:00"
+    },
+    "injection": {
+      "injector": "network_partition",
+      "service": "payment-service",
+      "success": true,
+      "injected_at": "2026-10-11T07:18:45.043388+00:00",
+      "target": "chaos-isolate-payment-service",
+      "details": {
+        "policy": "chaos-isolate-payment-service",
+        "effect": "deny all ingress + egress",
+        "conntrack_flush": {
+          "ok": true,
+          "pod_ips": [
+            "10.244.0.38",
+            "10.244.0.39"
+          ],
+          "agents": {
+            "chaos-agent-l7fcx": true
+          }
+        }
+      },
+      "error": null
+    },
+    "injected_at": "2026-10-11T07:18:45.043388+00:00",
+    "detected_at": "2026-10-11T07:18:54.887059+00:00",
+    "detection": {
+      "anomaly_detected": true,
+      "timestamp": "2026-10-11T07:18:54.887059+00:00",
+      "affected_service": "payment-service",
+      "anomaly_type": "network_partition",
+      "severity_score": 0.9757,
+      "iforest_score": -0.0475,
+      "threshold": 0.1031,
+      "feature_deltas": {
+        "request_rate": -3.28,
+        "error_rate": 0.0,
+        "p99_latency_ms": 0.02,
+        "inflight": -0.67,
+        "cpu_cores": -0.45,
+        "cpu_throttle_ratio": 0.0,
+        "memory_mb": -1.0,
+        "caller_error_rate": 11.44,
+        "caller_p99_ms": 25.0
+      },
+      "evidence": [
+        "replicas ready 2/2 (declared minimum 2)",
+        "metrics endpoint unreachable on 50% of pods",
+        "caller_error_rate=0.6% vs baseline 0.0% (z=+0.3)",
+        "request_rate=5.42 req/s vs baseline 6.92 req/s (z=-2.2)",
+        "pods are running (no container restarts) but cannot be reached over the pod network"
+      ],
+      "flags": [
+        "iforest",
+        "zscore:caller_error_rate",
+        "zscore:caller_p99_ms",
+        "metrics_unreachable"
+      ],
+      "detected_at": "2026-10-11T07:18:54.887059+00:00",
+      "first_flagged_at": "2026-10-11T07:18:49.887905+00:00",
+      "lstm": {
+        "predicted_score_60s": -0.0482,
+        "predicted_anomaly": true,
+        "forecast_scores": [
+          -0.0433,
+          -0.0496,
+          -0.045,
+          -0.0282,
+          -0.0298,
+          -0.0358,
+          -0.0356,
+          -0.0479,
+          -0.0403,
+          -0.0515,
+          -0.044,
+          -0.0482
+        ],
+        "residual_z": 30.736,
+        "ready": true
+      },
+      "anomalous_services": [
+        {
+          "service": "api-gateway",
+          "severity": 0.9694,
+          "anomaly_type": "high_latency",
+          "first_flagged_at": "2026-10-11T07:18:49.887905+00:00"
+        },
+        {
+          "service": "order-service",
+          "severity": 0.9695,
+          "anomaly_type": "error_spike",
+          "first_flagged_at": "2026-10-11T07:18:49.887905+00:00"
+        },
+        {
+          "service": "payment-service",
+          "severity": 0.9757,
+          "anomaly_type": "network_partition",
+          "first_flagged_at": "2026-10-11T07:18:49.887905+00:00"
+        }
+      ]
+    },
+    "rca": {
+      "origin": "payment-service",
+      "anomaly_type": "network_partition",
+      "confidence": 0.95,
+      "call_path": [
+        "api-gateway",
+        "payment-service"
+      ],
+      "affected": [
+        "api-gateway",
+        "order-service",
+        "payment-service",
+        "notification-service"
+      ],
+      "evidence": [
+        "replicas ready 2/2 (declared minimum 2)",
+        "metrics endpoint unreachable on 50% of pods",
+        "caller_error_rate=0.6% vs baseline 0.0% (z=+0.3)",
+        "request_rate=5.42 req/s vs baseline 6.92 req/s (z=-2.2)",
+        "pods are running (no container restarts) but cannot be reached over the pod network",
+        "NetworkPolicy 'chaos-isolate-payment-service' denies all Ingress/Egress traffic for pods of payment-service, created 15s ago",
+        "Pod payment-service-c89555bbc-jbdww: Unhealthy \u2014 Readiness probe failed: Get \"http://10.244.0.38:8003/ready\": context deadline exceeded (Client.Timeout exceeded while aw",
+        "Pod payment-service-c89555bbc-s4krb: Unhealthy \u2014 Readiness probe failed: Get \"http://10.244.0.39:8003/ready\": context deadline exceeded (Client.Timeout exceeded while aw"
+      ],
+      "candidates": [
+        {
+          "service": "payment-service",
+          "score": 9.098,
+          "reasons": [
+            "severity 1.00",
+            "no anomalous dependency explains it",
+            "explains anomalies in callers ['api-gateway', 'order-service']",
+            "earliest onset",
+            "structural fault on the service itself",
+            "NetworkPolicy 'chaos-isolate-payment-service' denies all Ingress/Egress traffic for pods of payment-service, created 15s ago",
+            "Pod payment-service-c89555bbc-jbdww: Unhealthy \u2014 Readiness probe failed: Get \"http://10.244.0.38:8003/ready\": context deadline exceeded (Client.Timeout exceeded while aw",
+            "Pod payment-service-c89555bbc-s4krb: Unhealthy \u2014 Readiness probe failed: Get \"http://10.244.0.39:8003/ready\": context deadline exceeded (Client.Timeout exceeded while aw"
+          ]
+        },
+        {
+          "service": "order-service",
+          "score": 2.793,
+          "reasons": [
+            "severity 0.97",
+            "its dependencies ['payment-service'] are also anomalous (likely a victim)",
+            "explains anomalies in callers ['api-gateway']",
+            "earliest onset",
+            "162 ERROR log lines in the last 60s, e.g. 'dependency failure (payment-service)'"
+          ]
+        },
+        {
+          "service": "api-gateway",
+          "score": 2.362,
+          "reasons": [
+            "severity 0.97",
+            "its dependencies ['order-service', 'payment-service'] are also anomalous (likely a victim)",
+            "earliest onset",
+            "135 ERROR log lines in the last 60s, e.g. 'request failed'"
+          ]
+        },
+        {
+          "service": "notification-service",
+          "score": 0.751,
+          "reasons": [
+            "severity 0.23",
+            "only symptom is reduced traffic \u2014 consistent with an upstream failure",
+            "no anomalous dependency explains it",
+            "explains anomalies in callers ['api-gateway']"
+          ]
+        }
+      ],
+      "narrative": "Root cause localised to payment-service (network partition, confidence 95%). api-gateway, order-service also deviate as callers of payment-service: its failure propagates to them. notification-service also deviate without a dependency explaining it (lower-ranked candidates). Change evidence: NetworkPolicy 'chaos-isolate-payment-service' denies all Ingress/Egress traffic for pods of payment-service, created 15s ago; Pod payment-service-c89555bbc-jbdww: Unhealthy \u2014 Readiness probe failed: Get \"http://10.244.0.38:8003/ready\": context deadline exceeded (Client.Timeout exceeded while aw."
+    },
+    "initial_rca": {
+      "origin": "payment-service",
+      "anomaly_type": "network_partition",
+      "confidence": 0.95,
+      "call_path": [
+        "api-gateway",
+        "payment-service"
+      ],
+      "affected": [
+        "api-gateway",
+        "order-service",
+        "payment-service",
+        "notification-service"
+      ],
+      "evidence": [
+        "replicas ready 2/2 (declared minimum 2)",
+        "metrics endpoint unreachable on 50% of pods",
+        "caller_error_rate=0.6% vs baseline 0.0% (z=+0.3)",
+        "request_rate=5.42 req/s vs baseline 6.92 req/s (z=-2.2)",
+        "pods are running (no container restarts) but cannot be reached over the pod network",
+        "NetworkPolicy 'chaos-isolate-payment-service' denies all Ingress/Egress traffic for pods of payment-service, created 15s ago",
+        "Pod payment-service-c89555bbc-jbdww: Unhealthy \u2014 Readiness probe failed: Get \"http://10.244.0.38:8003/ready\": context deadline exceeded (Client.Timeout exceeded while aw",
+        "Pod payment-service-c89555bbc-s4krb: Unhealthy \u2014 Readiness probe failed: Get \"http://10.244.0.39:8003/ready\": context deadline exceeded (Client.Timeout exceeded while aw"
+      ],
+      "candidates": [
+        {
+          "service": "payment-service",
+          "score": 9.098,
+          "reasons": [
+            "severity 1.00",
+            "no anomalous dependency explains it",
+            "explains anomalies in callers ['api-gateway', 'order-service']",
+            "earliest onset",
+            "structural fault on the service itself",
+            "NetworkPolicy 'chaos-isolate-payment-service' denies all Ingress/Egress traffic for pods of payment-service, created 15s ago",
+            "Pod payment-service-c89555bbc-jbdww: Unhealthy \u2014 Readiness probe failed: Get \"http://10.244.0.38:8003/ready\": context deadline exceeded (Client.Timeout exceeded while aw",
+            "Pod payment-service-c89555bbc-s4krb: Unhealthy \u2014 Readiness probe failed: Get \"http://10.244.0.39:8003/ready\": context deadline exceeded (Client.Timeout exceeded while aw"
+          ]
+        },
+        {
+          "service": "order-service",
+          "score": 2.793,
+          "reasons": [
+            "severity 0.97",
+            "its dependencies ['payment-service'] are also anomalous (likely a victim)",
+            "explains anomalies in callers ['api-gateway']",
+            "earliest onset",
+            "162 ERROR log lines in the last 60s, e.g. 'dependency failure (payment-service)'"
+          ]
+        },
+        {
+          "service": "api-gateway",
+          "score": 2.362,
+          "reasons": [
+            "severity 0.97",
+            "its dependencies ['order-service', 'payment-service'] are also anomalous (likely a victim)",
+            "earliest onset",
+            "135 ERROR log lines in the last 60s, e.g. 'request failed'"
+          ]
+        },
+        {
+          "service": "notification-service",
+          "score": 0.751,
+          "reasons": [
+            "severity 0.23",
+            "only symptom is reduced traffic \u2014 consistent with an upstream failure",
+            "no anomalous dependency explains it",
+            "explains anomalies in callers ['api-gateway']"
+          ]
+        }
+      ],
+      "narrative": "Root cause localised to payment-service (network partition, confidence 95%). api-gateway, order-service also deviate as callers of payment-service: its failure propagates to them. notification-service also deviate without a dependency explaining it (lower-ranked candidates). Change evidence: NetworkPolicy 'chaos-isolate-payment-service' denies all Ingress/Egress traffic for pods of payment-service, created 15s ago; Pod payment-service-c89555bbc-jbdww: Unhealthy \u2014 Readiness probe failed: Get \"http://10.244.0.38:8003/ready\": context deadline exceeded (Client.Timeout exceeded while aw."
+    },
+    "decision": {
+      "service": "payment-service",
+      "anomaly_type": "network_partition",
+      "priority": 9.988,
+      "action": "rolling_restart",
+      "fallback": "network_policy_rollback",
+      "confidence": 0.646,
+      "guardrails": [
+        {
+          "id": "G3",
+          "outcome": "SWITCHED",
+          "detail": "network_policy_rollback failed on payment-service within the last 5 minutes; trying rolling_restart first"
+        }
+      ],
+      "reasoning": [
+        "payment-service: network partition at severity 1.00; business impact 10/10 -> priority 9.99. Playbook: network_policy_rollback, fallback rolling_restart.",
+        "G3 SWITCHED: network_policy_rollback failed on payment-service within the last 5 minutes; trying rolling_restart first",
+        "Confidence in rolling_restart: 0.65 (history 0.80 over 1 attempt(s) x RCA 0.95 x blast factor 0.85).",
+        "Decision: rolling_restart on payment-service (fallback network_policy_rollback, confidence 0.65)."
+      ]
+    },
+    "remediations": [
+      {
+        "remediator": "rolling_restart",
+        "service": "payment-service",
+        "success": false,
+        "summary": "rollout did not complete within 180s",
+        "started_at": "2026-10-11T07:19:00.324050+00:00",
+        "completed_at": "2026-10-11T07:22:01.783388+00:00",
+        "duration_s": 181.45932639999955,
+        "details": {
+          "replaced": [
+            "payment-service-c89555bbc-jbdww",
+            "payment-service-c89555bbc-s4krb"
+          ],
+          "ready_pods": []
+        },
+        "verified": false,
+        "verified_at": null
+      },
+      {
+        "remediator": "network_policy_rollback",
+        "service": "payment-service",
+        "success": true,
+        "summary": "removed 1 isolating NetworkPolicy(ies): chaos-isolate-payment-service",
+        "started_at": "2026-10-11T07:22:02.070922+00:00",
+        "completed_at": "2026-10-11T07:22:12.207536+00:00",
+        "duration_s": 10.136603800005105,
+        "details": {
+          "deleted": [
+            "chaos-isolate-payment-service"
+          ],
+          "policies": [
+            {
+              "name": "chaos-isolate-payment-service",
+              "selector": {
+                "app": "payment-service"
+              },
+              "types": [
+                "Ingress",
+                "Egress"
+              ],
+              "created_at": "2026-10-11T07:18:45+00:00"
+            }
+          ]
+        },
+        "verified": true,
+        "verified_at": "2026-10-11T07:22:12.252908+00:00"
+      }
+    ],
+    "healed_by": "fallback",
+    "mitigated_at": "2026-10-11T07:22:12.252908+00:00",
+    "recovered_at": null,
+    "guardrails": [
+      {
+        "id": "G3",
+        "outcome": "SWITCHED",
+        "detail": "network_policy_rollback failed on payment-service within the last 5 minutes; trying rolling_restart first"
+      }
+    ],
+    "teardown": {
+      "fault_still_present": false,
+      "reverse": {
+        "policy": "chaos-isolate-payment-service",
+        "deleted": false
+      },
+      "autoscaler": {
+        "unchanged": {
+          "minReplicas": 2,
+          "maxReplicas": 4
+        }
+      }
+    },
+    "fault_cleared": true,
+    "sla": {
+      "ttd_seconds": 9.84,
+      "ttm_seconds": 197.37,
+      "ttr_seconds": null,
+      "detection_target_seconds": 30,
+      "recovery_target_seconds": 90,
+      "detection_met": true,
+      "recovery_met": false,
+      "recovery_margin_seconds": null
+    },
+    "user_impact": {
+      "total_requests": 7501.4,
+      "failed_requests": 1437.2,
+      "failure_ratio": 0.1916,
+      "p99_ms": 3789.5,
+      "window_seconds": 375
+    },
+    "diagnosis_correct": true,
+    "classification_correct": true
+  },
+  {
+    "round": 4,
+    "campaign_id": "c-20261011-071521-1560",
+    "injector": "replica_reduction",
+    "planner": {
+      "injector": "replica_reduction",
+      "target": "api-gateway",
+      "decided_by": "llm",
+      "model": "groq/openai/gpt-oss-120b",
+      "reason": "Replica reduction on api-gateway is high impact, long idle time, and a new fault/service pair for this campaign.",
+      "fallback_reason": null,
+      "candidates": [
+        {
+          "id": 1,
+          "fault": "replica_reduction",
+          "service": "api-gateway",
+          "what_it_does": "Clamp HPA to min=max=1",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 385.9,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.522
+        },
+        {
+          "id": 2,
+          "fault": "cpu_throttle",
+          "service": "product-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 388.7,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.453
+        },
+        {
+          "id": 3,
+          "fault": "cpu_throttle",
+          "service": "notification-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 2,
+          "user_traffic_share": 0.0,
+          "minutes_since_last_tried": null,
+          "times_tried": 0,
+          "last_outcome": null,
+          "rule_score": 0.38
+        },
+        {
+          "id": 4,
+          "fault": "cpu_throttle",
+          "service": "api-gateway",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 18.4,
+          "times_tried": 3,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.36
+        },
+        {
+          "id": 5,
+          "fault": "replica_reduction",
+          "service": "product-service",
+          "what_it_does": "Clamp HPA to min=max=1",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 19.4,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.291
+        },
+        {
+          "id": 6,
+          "fault": "cpu_throttle",
+          "service": "order-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [
+            "product-service",
+            "payment-service"
+          ],
+          "business_impact_1_to_10": 8,
+          "user_traffic_share": 0.4,
+          "minutes_since_last_tried": 403.1,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.2
+        },
+        {
+          "id": 7,
+          "fault": "replica_reduction",
+          "service": "payment-service",
+          "what_it_does": "Clamp HPA to min=max=1",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 10,
+          "user_traffic_share": 0.35,
+          "minutes_since_last_tried": 186.2,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.167
+        },
+        {
+          "id": 8,
+          "fault": "latency_injection",
+          "service": "api-gateway",
+          "what_it_does": "tc netem egress delay on one replica",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 384.9,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.122
+        },
+        {
+          "id": 9,
+          "fault": "cpu_throttle",
+          "service": "payment-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 10,
+          "user_traffic_share": 0.35,
+          "minutes_since_last_tried": 78.9,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.113
+        },
+        {
+          "id": 10,
+          "fault": "replica_reduction",
+          "service": "order-service",
+          "what_it_does": "Clamp HPA to min=max=1",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [
+            "product-service",
+            "payment-service"
+          ],
+          "business_impact_1_to_10": 8,
+          "user_traffic_share": 0.4,
+          "minutes_since_last_tried": 77.1,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.087
+        }
+      ]
+    },
+    "expected_signature": "replica_exhaustion",
+    "requested_target": "api-gateway",
+    "target": "api-gateway",
+    "status": "SKIPPED_PREFLIGHT",
+    "timeline": [
+      {
+        "at": "2026-10-11T07:25:06.584799+00:00",
+        "phase": "PREFLIGHT"
+      },
+      {
+        "at": "2026-10-11T07:28:15.032000+00:00",
+        "phase": "SKIPPED_PREFLIGHT"
+      }
+    ],
+    "preflight": {
+      "target": "api-gateway",
+      "injector": "replica_reduction",
+      "dependents": [],
+      "blast_score": 0,
+      "estimated_affected_users_pct": 100,
+      "business_impact": 9,
+      "system_health_pct": 80.0,
+      "target_ready": "2/2",
+      "load_ratio": 1.05,
+      "injection_risk": "MEDIUM",
+      "go_nogo": "NO-GO",
+      "nogo_reasons": [
+        "steady state not met: payment-service currently anomalous"
+      ],
+      "sla_target_seconds": 120,
+      "evaluated_at": "2026-10-11T07:28:15.017704+00:00"
+    }
+  },
+  {
+    "round": 5,
+    "campaign_id": "c-20261011-071521-1560",
+    "injector": "cpu_throttle",
+    "planner": {
+      "injector": "cpu_throttle",
+      "target": "product-service",
+      "decided_by": "llm",
+      "model": "groq/openai/gpt-oss-120b",
+      "reason": "CPU throttle on product-service hasn't been tried in a while, has high traffic and impact, and targets a service not yet used this campaign.",
+      "fallback_reason": null,
+      "candidates": [
+        {
+          "id": 1,
+          "fault": "cpu_throttle",
+          "service": "product-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 392.0,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.453
+        },
+        {
+          "id": 2,
+          "fault": "cpu_throttle",
+          "service": "notification-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 2,
+          "user_traffic_share": 0.0,
+          "minutes_since_last_tried": null,
+          "times_tried": 0,
+          "last_outcome": null,
+          "rule_score": 0.38
+        },
+        {
+          "id": 3,
+          "fault": "cpu_throttle",
+          "service": "order-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [
+            "product-service",
+            "payment-service"
+          ],
+          "business_impact_1_to_10": 8,
+          "user_traffic_share": 0.4,
+          "minutes_since_last_tried": 406.3,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.201
+        },
+        {
+          "id": 4,
+          "fault": "cpu_throttle",
+          "service": "payment-service",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 10,
+          "user_traffic_share": 0.35,
+          "minutes_since_last_tried": 82.2,
+          "times_tried": 2,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.115
+        },
+        {
+          "id": 5,
+          "fault": "cpu_throttle",
+          "service": "api-gateway",
+          "what_it_does": "In-place resize of every replica's CPU limit to a starvation value",
+          "dependents": [],
+          "depends_on": [
+            "product-service",
+            "order-service",
+            "payment-service",
+            "notification-service"
+          ],
+          "business_impact_1_to_10": 9,
+          "user_traffic_share": 1.0,
+          "minutes_since_last_tried": 21.7,
+          "times_tried": 3,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.114
+        },
+        {
+          "id": 6,
+          "fault": "network_partition",
+          "service": "product-service",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 404.5,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": 0.056
+        },
+        {
+          "id": 7,
+          "fault": "latency_injection",
+          "service": "product-service",
+          "what_it_does": "tc netem egress delay on one replica",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 194.7,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": -0.0
+        },
+        {
+          "id": 8,
+          "fault": "network_partition",
+          "service": "notification-service",
+          "what_it_does": "Deny-all NetworkPolicy selecting the service's pods",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 2,
+          "user_traffic_share": 0.0,
+          "minutes_since_last_tried": null,
+          "times_tried": 0,
+          "last_outcome": null,
+          "rule_score": -0.02
+        },
+        {
+          "id": 9,
+          "fault": "pod_deletion",
+          "service": "product-service",
+          "what_it_does": "Force-delete one Ready pod (grace period 0)",
+          "dependents": [
+            "api-gateway",
+            "order-service"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 6,
+          "user_traffic_share": 0.75,
+          "minutes_since_last_tried": 78.6,
+          "times_tried": 1,
+          "last_outcome": "recovered_within_sla",
+          "rule_score": -0.057
+        },
+        {
+          "id": 10,
+          "fault": "latency_injection",
+          "service": "notification-service",
+          "what_it_does": "tc netem egress delay on one replica",
+          "dependents": [
+            "api-gateway"
+          ],
+          "depends_on": [],
+          "business_impact_1_to_10": 2,
+          "user_traffic_share": 0.0,
+          "minutes_since_last_tried": 75.9,
+          "times_tried": 1,
+          "last_outcome": "undetected",
+          "rule_score": -0.094
+        }
+      ]
+    },
+    "expected_signature": "cpu_throttle",
+    "requested_target": "product-service",
+    "target": "product-service",
+    "status": "SKIPPED_PREFLIGHT",
+    "timeline": [
+      {
+        "at": "2026-10-11T07:28:21.773518+00:00",
+        "phase": "PREFLIGHT"
+      },
+      {
+        "at": "2026-10-11T07:31:25.022187+00:00",
+        "phase": "SKIPPED_PREFLIGHT"
+      }
+    ],
+    "preflight": {
+      "target": "product-service",
+      "injector": "cpu_throttle",
+      "dependents": [
+        "api-gateway",
+        "order-service"
+      ],
+      "blast_score": 2,
+      "estimated_affected_users_pct": 100,
+      "business_impact": 6,
+      "system_health_pct": 80.0,
+      "target_ready": "2/2",
+      "load_ratio": 0.96,
+      "injection_risk": "HIGH",
+      "go_nogo": "NO-GO",
+      "nogo_reasons": [
+        "steady state not met: payment-service currently anomalous"
+      ],
+      "sla_target_seconds": 90,
+      "evaluated_at": "2026-10-11T07:31:25.008857+00:00"
+    }
+  }
+]
