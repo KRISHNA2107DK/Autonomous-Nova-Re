@@ -12,7 +12,7 @@ plain English while it happens.
                                      rails)    re-diagnose) recovery)    ground truth)
 ```
 
-It runs entirely on one Windows/macOS/Linux machine: a `kind` Kubernetes
+It runs entirely on one Windows/macOS/Linux machine: a `kind` Kubernetes 
 cluster, a 5-service shop (**ShopFusion**), Prometheus, an in-cluster traffic
 generator, and the AutoHeal control plane with a live dashboard.
 
