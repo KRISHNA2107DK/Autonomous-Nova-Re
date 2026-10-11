@@ -1,4 +1,4 @@
-# AutoHeal — Autonomous Chaos Engineering & Self-Healing
+# AutoHeal — Autonomous Chaos Engineering & Self-Healing 
 
 AutoHeal breaks a real microservice application on purpose, notices on its own,
 works out *why*, fixes it, proves the fix worked — and explains every step in
