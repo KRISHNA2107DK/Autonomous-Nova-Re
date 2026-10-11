@@ -1,4 +1,4 @@
-# NovaSurge campaign `c-20261010-202240-d5ad`
+# AutoHeal campaign `c-20261010-202240-d5ad`
 
 **Resilience score: 98.9/100** — EXCELLENT — every fault detected, diagnosed and healed within SLA
 

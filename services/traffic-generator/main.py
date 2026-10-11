@@ -13,7 +13,7 @@ It doubles as the *user-facing SLI probe*: every outcome is exported on :9100
     loadgen_requests_total{endpoint, outcome}     outcome = ok | client_error |
                                                   server_error | timeout | connection_error
     loadgen_request_duration_seconds{endpoint}
-NovaSurge's SLA tracker uses these to measure what users actually experienced
+AutoHeal's SLA tracker uses these to measure what users actually experienced
 during each chaos round.
 
 Configuration (env): TARGET_URL, RPS, MAX_CONCURRENCY, REQUEST_TIMEOUT_SECONDS

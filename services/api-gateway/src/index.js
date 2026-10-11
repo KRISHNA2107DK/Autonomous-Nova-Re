@@ -15,7 +15,7 @@
  * requests so load keeps spreading across replicas (as Envoy's
  * max_requests_per_connection does).
  *
- * Emits the same metric names as the Python services so NovaSurge can query
+ * Emits the same metric names as the Python services so AutoHeal can query
  * every service uniformly:
  *   http_requests_total{method,route,status_code}
  *   http_request_duration_seconds{method,route}

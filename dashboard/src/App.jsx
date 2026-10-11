@@ -1,4 +1,4 @@
-import useNovaSurge from './hooks/useNovaSurge'
+import useAutoHeal from './hooks/useAutoHeal'
 import Panel from './components/Panel'
 import Header from './components/Header'
 import AnomalyScoreChart from './components/AnomalyScoreChart'
@@ -9,7 +9,7 @@ import DependencyGraph from './components/DependencyGraph'
 import ForecastChart from './components/ForecastChart'
 
 export default function App() {
-  const { connected, frame, buffer, events, meta, rounds, campaigns, api } = useNovaSurge()
+  const { connected, frame, buffer, events, meta, rounds, campaigns, api } = useAutoHeal()
   const threshold = frame?.threshold ?? meta?.model?.threshold ?? null
 
   return (
@@ -18,7 +18,7 @@ export default function App() {
 
       {!connected && (
         <div className="shrink-0 bg-red-950 text-red-200 text-xs px-4 py-1.5">
-          Not connected to the NovaSurge server — start it with <code className="mono">python -m novasurge serve</code>.
+          Not connected to the AutoHeal server — start it with <code className="mono">python -m novasurge serve</code>.
           Retrying automatically; no data is simulated.
         </div>
       )}

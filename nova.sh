@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# NovaSurge launcher for Linux / macOS / Git-Bash.
+# AutoHeal launcher for Linux / macOS / Git-Bash.
 #   ./nova.sh demo | serve | campaign | status | help
 # Creates a virtual environment outside the repo (~/.cache/novasurge/venv, or
-# %LOCALAPPDATA%\NovaSurge\venv on Windows) and installs requirements.txt once.
+# %LOCALAPPDATA%\AutoHeal\venv on Windows) and installs requirements.txt once.
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -n "${NOVASURGE_HOME:-}" ]]; then HOME_DIR="$NOVASURGE_HOME"
-elif [[ -n "${LOCALAPPDATA:-}" ]]; then HOME_DIR="$LOCALAPPDATA/NovaSurge"
+elif [[ -n "${LOCALAPPDATA:-}" ]]; then HOME_DIR="$LOCALAPPDATA/AutoHeal"
 else HOME_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/novasurge"; fi
 VENV="$HOME_DIR/venv"
 if [[ -x "$VENV/Scripts/python.exe" ]]; then PY="$VENV/Scripts/python.exe"; else PY="$VENV/bin/python"; fi

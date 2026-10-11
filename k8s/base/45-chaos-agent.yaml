@@ -1,5 +1,5 @@
 # chaos-agent — one pod per node in the node's network namespace with
-# NET_ADMIN (not fully privileged). NovaSurge execs `conntrack -D` here so a
+# NET_ADMIN (not fully privileged). AutoHeal execs `conntrack -D` here so a
 # network-partition NetworkPolicy also cuts flows that were already
 # established (CNIs typically only evaluate policy for new connections).
 apiVersion: apps/v1

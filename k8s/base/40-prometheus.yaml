@@ -1,6 +1,6 @@
 # Prometheus — single lean instance (no operator/Helm) scraping:
 #   * every pod annotated prometheus.io/scrape=true in shopfusion + novasurge-system
-#     (pod's `app` label becomes the `service` label used by NovaSurge queries)
+#     (pod's `app` label becomes the `service` label used by AutoHeal queries)
 #   * kubelet cAdvisor via the API-server proxy (CPU, CFS throttling, memory)
 # 5s scrape interval keeps time-to-detect low. Exposed on NodePort 30090.
 apiVersion: v1
@@ -93,7 +93,7 @@ data:
             target_label: __metrics_path__
             replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
         metric_relabel_configs:
-          # keep only what NovaSurge uses -> small, fast TSDB
+          # keep only what AutoHeal uses -> small, fast TSDB
           - source_labels: [__name__]
             action: keep
             regex: container_cpu_usage_seconds_total|container_cpu_cfs_periods_total|container_cpu_cfs_throttled_periods_total|container_memory_working_set_bytes|container_spec_memory_limit_bytes

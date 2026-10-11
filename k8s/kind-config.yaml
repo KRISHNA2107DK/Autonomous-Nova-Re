@@ -1,4 +1,4 @@
-# Single-node kind cluster for NovaSurge.
+# Single-node kind cluster for AutoHeal.
 # Created by:  python -m novasurge up   (or: kind create cluster --config k8s/kind-config.yaml)
 #
 # Only two NodePorts are published to the host, both bound to loopback:

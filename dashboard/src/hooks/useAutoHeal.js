@@ -9,11 +9,11 @@ function wsUrl() {
 }
 
 /**
- * Live connection to the NovaSurge server.
+ * Live connection to the AutoHeal server.
  * No mock fallback: when the server is unreachable the UI says so instead of
  * inventing data.
  */
-export default function useNovaSurge() {
+export default function useAutoHeal() {
   const [connected, setConnected] = useState(false)
   const [frame, setFrame] = useState(null)
   const [buffer, setBuffer] = useState([])

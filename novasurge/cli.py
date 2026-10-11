@@ -1,5 +1,5 @@
 """
-NovaSurge command line.
+AutoHeal command line.
 
     python -m novasurge demo            everything: cluster -> models -> dashboard -> 5-round campaign
     python -m novasurge up              create/update the cluster and deploy ShopFusion (idempotent)
@@ -66,7 +66,7 @@ def ensure_models(minutes: int = BASELINE_MINUTES) -> None:
 
 
 def clean_minutes_available() -> tuple[float, str]:
-    """Minutes of steady traffic with no NovaSurge chaos/remediation activity in them."""
+    """Minutes of steady traffic with no AutoHeal chaos/remediation activity in them."""
     from novasurge import infra, state_db
     traffic = infra.traffic_minutes_available()
     last = state_db.last_chaos_activity()
@@ -184,7 +184,7 @@ def cmd_campaign(args) -> None:
     url = config.API_URL
     if _api_up(url):
         import httpx
-        say(f"submitting the campaign to the running NovaSurge server at {url} (watch the dashboard)")
+        say(f"submitting the campaign to the running AutoHeal server at {url} (watch the dashboard)")
         after = (httpx.get(f"{url}/api/events", params={"limit": 1}).json() or [{"id": 0}])[-1]["id"]
         resp = httpx.post(f"{url}/api/campaign/start", json={"plan": plan, "use_llm": not args.no_llm},
                           timeout=10)

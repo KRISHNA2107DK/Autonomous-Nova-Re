@@ -1,5 +1,5 @@
 """
-Train NovaSurge's detection models on *real* baseline telemetry.
+Train AutoHeal's detection models on *real* baseline telemetry.
 
     python -m novasurge train [--minutes 8] [--include-recorded]
 
@@ -14,7 +14,7 @@ Pipeline
      false-positive rate on a held-out (later-in-time) slice.
   5. Probe detection sensitivity with synthetic single-feature faults.
   6. Train the LSTM forecaster on the same series (+ optionally the telemetry
-     NovaSurge recorded during past chaos campaigns, which teaches it what
+     AutoHeal recorded during past chaos campaigns, which teaches it what
      degradation and recovery dynamics look like) and compare it against a
      naive persistence forecast.
   7. Persist artefacts + model_card.json.

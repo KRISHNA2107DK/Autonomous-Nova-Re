@@ -1,9 +1,9 @@
-# Least-privilege identity for the NovaSurge control loop.
+# Least-privilege identity for the AutoHeal control loop.
 #
 # Every permission below maps to a concrete injector / remediator / RCA call;
 # nothing is cluster-wide except reading HPA-relevant metrics. When the
 # platform runs from the host it uses your kubeconfig context instead; this
-# ServiceAccount is what you would bind if NovaSurge ran inside the cluster.
+# ServiceAccount is what you would bind if AutoHeal ran inside the cluster.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

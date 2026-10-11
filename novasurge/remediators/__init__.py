@@ -52,7 +52,7 @@ def now_iso() -> str:
 
 
 def note_own_action(pods: list[str]) -> None:
-    """Remember pods NovaSurge itself deleted/replaced (kept 15 minutes)."""
+    """Remember pods AutoHeal itself deleted/replaced (kept 15 minutes)."""
     from novasurge import state_db
     cutoff = time.time() - 900
     own = {k: v for k, v in state_db.kv_get("own_pod_actions", {}).items() if v > cutoff}

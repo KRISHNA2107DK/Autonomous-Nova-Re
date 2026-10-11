@@ -6,7 +6,7 @@ export default function ReasoningFeed({ events }) {
   if (!items.length) {
     return (
       <div className="h-full flex items-center justify-center text-slate-500 text-xs text-center px-6">
-        No reasoning events yet. Start a campaign — or inject a fault with autopilot on — and NovaSurge will narrate
+        No reasoning events yet. Start a campaign — or inject a fault with autopilot on — and AutoHeal will narrate
         every detection, diagnosis and decision here.
       </div>
     )

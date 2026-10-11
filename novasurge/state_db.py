@@ -328,7 +328,7 @@ CHAOS_PHASES = ("INJECT", "REMEDIATE", "TEARDOWN", "AUTOPILOT", "RECOVERED", "FA
 
 
 def last_chaos_activity() -> datetime | None:
-    """When NovaSurge last injected or remediated anything (training must not see it)."""
+    """When AutoHeal last injected or remediated anything (training must not see it)."""
     marks = ",".join("?" * len(CHAOS_PHASES))
     with connect() as c:
         row = c.execute(f"SELECT MAX(at) AS at FROM events WHERE phase IN ({marks})", CHAOS_PHASES).fetchone()  # noqa: S608

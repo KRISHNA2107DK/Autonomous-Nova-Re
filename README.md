@@ -1,6 +1,6 @@
-# NovaSurge — Autonomous Chaos Engineering & Self-Healing
+# AutoHeal — Autonomous Chaos Engineering & Self-Healing
 
-NovaSurge breaks a real microservice application on purpose, notices on its own,
+AutoHeal breaks a real microservice application on purpose, notices on its own,
 works out *why*, fixes it, proves the fix worked — and explains every step in
 plain English while it happens.
 
@@ -14,7 +14,7 @@ plain English while it happens.
 
 It runs entirely on one Windows/macOS/Linux machine: a `kind` Kubernetes
 cluster, a 5-service shop (**ShopFusion**), Prometheus, an in-cluster traffic
-generator, and the NovaSurge control plane with a live dashboard.
+generator, and the AutoHeal control plane with a live dashboard.
 
 > This is a ground-up rebuild of `KRISHNA2107DK/final_novasurge`. The original's
 > loop was largely simulated and several pieces could not run as committed — see
@@ -34,7 +34,7 @@ cd path\to\NOVA
 
 That single command:
 
-1. creates a Python venv in `%LOCALAPPDATA%\NovaSurge` (outside the repo) and installs dependencies
+1. creates a Python venv in `%LOCALAPPDATA%\AutoHeal` (outside the repo) and installs dependencies
 2. downloads `kind` (checksum-verified), creates the cluster, builds and loads 7 images
 3. deploys ShopFusion, Postgres, Redis, Prometheus, metrics-server, the traffic generator and the chaos agent
 4. **first run only:** records ~9 minutes of clean live traffic and trains the models on it
@@ -51,7 +51,7 @@ Linux/macOS: `./nova.sh demo` (same commands as below with `./nova.sh`).
 | Command | What it does |
 |---|---|
 | `.\nova.ps1 demo` | Everything above, end to end |
-| `.\nova.ps1 serve` | Dashboard + API on :8000 with autopilot (heals anomalies NovaSurge did not inject) |
+| `.\nova.ps1 serve` | Dashboard + API on :8000 with autopilot (heals anomalies AutoHeal did not inject) |
 | `.\nova.ps1 campaign` | Run the 5-round campaign (attaches to a running `serve` so the dashboard shows it) |
 | `.\nova.ps1 campaign --injector cpu_throttle --target payment-service` | One specific experiment |
 | `.\nova.ps1 campaign --dry-run` | The same campaign against the built-in simulator — no cluster, ~2 min |
@@ -103,7 +103,7 @@ Each round the **Chaos Planner** (`novasurge/chaos/planner.py`) picks the fault 
 Set it up once (Groq recommended for its generous free tier; Gemini also supported):
 
 ```powershell
-.\nova.ps1 agent-key groq     # paste the key (hidden); stored in %LOCALAPPDATA%\NovaSurge\llm.env, never in the repo
+.\nova.ps1 agent-key groq     # paste the key (hidden); stored in %LOCALAPPDATA%\AutoHeal\llm.env, never in the repo
 .\nova.ps1 agent-test         # one real call to verify
 ```
 
@@ -177,7 +177,7 @@ vs. a persistence baseline.
 **RCA** — scores every anomalous (or currently deviating) service: own failure symptoms vs. "only receives less
 traffic", whether a failing dependency explains it, onset order, change evidence from the cluster (isolating
 NetworkPolicies, live resources below the declared baseline, HPA bounds below the declared minimum, pod
-lifecycle events — excluding NovaSurge's own actions), error logs, and caller-side-only latency (attributed to
+lifecycle events — excluding AutoHeal's own actions), error logs, and caller-side-only latency (attributed to
 the caller whose calls show the excess). The result is an origin, a refined fault class, a confidence and a narrative.
 
 ---
@@ -245,7 +245,7 @@ Legacy aliases kept: `/health`, `/anomaly/current`, `/metrics/current`, `/rounds
 
 | Env var | Default |
 |---|---|
-| `NOVASURGE_HOME` | `%LOCALAPPDATA%\NovaSurge` / `~/.cache/novasurge` — venv, tools, SQLite, telemetry |
+| `NOVASURGE_HOME` | `%LOCALAPPDATA%\AutoHeal` / `~/.cache/novasurge` — venv, tools, SQLite, telemetry |
 | `NOVASURGE_CLUSTER`, `NOVASURGE_KUBE_CONTEXT` | `novasurge`, `kind-novasurge` |
 | `PROMETHEUS_URL`, `GATEWAY_URL` | `http://127.0.0.1:30090`, `http://127.0.0.1:30080` |
 | `NOVASURGE_API_PORT` | `8000` |

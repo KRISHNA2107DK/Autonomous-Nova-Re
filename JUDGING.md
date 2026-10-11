@@ -1,6 +1,6 @@
-# NovaSurge — evaluation guide
+# AutoHeal — evaluation guide
 
-**One line:** NovaSurge injects real faults into a Kubernetes microservice shop, detects them with
+**One line:** AutoHeal injects real faults into a Kubernetes microservice shop, detects them with
 models trained on that shop's own telemetry, finds the root cause, heals it, proves the fix with
 real user-path probes, and narrates every decision — then grades itself against the ground truth.
 
@@ -38,4 +38,4 @@ No cluster? `.\nova.ps1 campaign --dry-run` runs the identical logic against the
 3. **Honest outcomes.** `UNDETECTED`, `MASKED`, `FAILED` and `ABORTED` are first-class results.
 4. **Safety first.** Steady-state gate before injecting, blast-radius preflight, four guardrails, a user-impact
    watchdog that aborts experiments, idempotent teardown back to the declared state.
-5. **Autopilot.** The same pipeline heals faults NovaSurge did not inject (`.\nova.ps1 inject …`).
+5. **Autopilot.** The same pipeline heals faults AutoHeal did not inject (`.\nova.ps1 inject …`).

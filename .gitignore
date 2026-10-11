@@ -11,7 +11,7 @@ venv/
 node_modules/
 dashboard/.vite/
 
-# Runtime state lives in %LOCALAPPDATA%\NovaSurge (or ~/.cache/novasurge), never here.
+# Runtime state lives in %LOCALAPPDATA%\AutoHeal (or ~/.cache/novasurge), never here.
 # Dry-run reports are throwaway; live campaign reports in reports/ are kept.
 reports/dry-run/
 

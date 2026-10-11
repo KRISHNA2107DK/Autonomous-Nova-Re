@@ -1,5 +1,5 @@
 """
-NovaSurge API + dashboard server.
+AutoHeal API + dashboard server.
 
     python -m novasurge serve            -> http://127.0.0.1:8000
 
@@ -188,7 +188,7 @@ def create_app(autopilot: bool = True, start_monitor: bool = True) -> FastAPI:
         if hub.monitor:
             await hub.monitor.stop()
 
-    app = FastAPI(title="NovaSurge", version=__version__, lifespan=lifespan)
+    app = FastAPI(title="AutoHeal", version=__version__, lifespan=lifespan)
     app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
                        allow_methods=["*"], allow_headers=["*"])
 
@@ -370,7 +370,7 @@ def create_app(autopilot: bool = True, start_monitor: bool = True) -> FastAPI:
     else:
         @app.get("/", include_in_schema=False)
         def index_missing():
-            return HTMLResponse("<h2>NovaSurge API is running.</h2><p>The dashboard has not been built yet: "
+            return HTMLResponse("<h2>AutoHeal API is running.</h2><p>The dashboard has not been built yet: "
                                 "run <code>python -m novasurge dashboard-build</code>.</p><p>API docs: "
                                 "<a href='/docs'>/docs</a></p>")
 

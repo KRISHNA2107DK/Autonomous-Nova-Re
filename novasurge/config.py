@@ -21,7 +21,7 @@ REPO_ROOT = PACKAGE_DIR.parent
 def _default_home() -> Path:
     if sys.platform == "win32":
         base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-        return base / "NovaSurge"
+        return base / "AutoHeal"
     return Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "novasurge"
 
 

@@ -167,7 +167,7 @@ class EvidenceCollector:
         except Exception as exc:  # noqa: BLE001
             log.debug("evidence: hpa check failed: %s", exc)
 
-        # 4. recent pod lifecycle events (generic, so capped; NovaSurge's own actions excluded)
+        # 4. recent pod lifecycle events (generic, so capped; AutoHeal's own actions excluded)
         try:
             since = datetime.now(timezone.utc) - timedelta(seconds=window_s)
             own = set(state_db.kv_get("own_pod_actions", {}))

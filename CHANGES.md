@@ -1,4 +1,4 @@
-# NovaSurge 2.0 — audit of the original project and what was rebuilt
+# AutoHeal 2.0 — audit of the original project and what was rebuilt
 
 The original repository (`KRISHNA2107DK/final_novasurge`) described a complete
 *inject → detect → decide → recover* platform, but most of the loop was

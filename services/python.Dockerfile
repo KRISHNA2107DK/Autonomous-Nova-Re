@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# iproute2 provides `tc`, used by NovaSurge's latency_injection chaos experiment
+# iproute2 provides `tc`, used by AutoHeal's latency_injection chaos experiment
 # (the pod also needs the NET_ADMIN capability, granted in its manifest).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends iproute2 \

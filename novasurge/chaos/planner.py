@@ -37,7 +37,7 @@ log = logging.getLogger("novasurge.planner")
 TOP_K = 10
 STALE_FULL_HOURS = 24.0
 
-SYSTEM_PROMPT = """You are the Chaos Planner of NovaSurge, an autonomous chaos-engineering platform for a
+SYSTEM_PROMPT = """You are the Chaos Planner of AutoHeal, an autonomous chaos-engineering platform for a
 Kubernetes e-commerce application. Each round you choose ONE fault to inject into ONE service.
 Choose to maximise what the experiment teaches about the system's resilience:
 - prefer (fault, service) pairs never tried or not tried for a long time;

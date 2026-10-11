@@ -1,4 +1,4 @@
-# NovaSurge node chaos agent: network tooling that must run in the node's
+# AutoHeal node chaos agent: network tooling that must run in the node's
 # network namespace (hostNetwork). Used to flush conntrack entries so that a
 # freshly created NetworkPolicy also applies to already-established flows
 # (most CNIs only evaluate policy for new connections).

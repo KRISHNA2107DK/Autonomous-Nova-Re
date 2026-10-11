@@ -299,7 +299,7 @@ class Detector:
         lost = False
         if prev is not None and prev.ready_pods:
             # A pod that was serving last tick and no longer is — unless the
-            # deployment was scaled down / rolled out, or NovaSurge quarantined it.
+            # deployment was scaled down / rolled out, or AutoHeal quarantined it.
             vanished = set(prev.ready_pods) - set(st.ready_pods) - set(st.quarantined_pods)
             expected = st.desired_replicas < prev.desired_replicas or st.generation != prev.generation
             lost = bool(vanished) and not expected

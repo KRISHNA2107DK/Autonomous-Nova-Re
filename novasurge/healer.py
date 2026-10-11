@@ -2,7 +2,7 @@
 Healer — diagnose -> decide -> remediate -> verify -> confirm recovery.
 
 Shared by campaign rounds (orchestrator) and autopilot (API), so an anomaly is
-handled identically whether NovaSurge injected it or it happened on its own.
+handled identically whether AutoHeal injected it or it happened on its own.
 
 Verification is independent of the remediator's own report:
   * functional — the deployment is at full Ready capacity (>= declared minimum)

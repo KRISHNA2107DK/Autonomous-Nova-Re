@@ -403,7 +403,7 @@ def _write_report(campaign_id: str, rounds: list[dict], report: dict) -> None:
 
 
 def render_markdown(campaign_id: str, rounds: list[dict], report: dict) -> str:
-    lines = [f"# NovaSurge campaign `{campaign_id}`", "",
+    lines = [f"# AutoHeal campaign `{campaign_id}`", "",
              f"**Resilience score: {report.get('resilience_score')}/100** — {report.get('verdict')}", "",
              "| Component | Points |", "|---|---|"]
     for k, v in (report.get("components") or {}).items():

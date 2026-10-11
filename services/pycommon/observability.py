@@ -1,7 +1,7 @@
 """
 Shared observability helpers for the ShopFusion Python services.
 
-Every service exposes the same metric names so NovaSurge can query them
+Every service exposes the same metric names so AutoHeal can query them
 uniformly (the `service` label is attached by Prometheus from the pod's
 `app` label, so it is not set here):
 

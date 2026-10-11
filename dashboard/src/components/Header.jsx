@@ -37,7 +37,7 @@ export default function Header({ connected, frame, campaigns, api }) {
       <div className="flex items-center gap-2 min-w-[250px]">
         <img src="/favicon.svg" alt="" className="w-6 h-6" />
         <div className="leading-tight">
-          <div className="text-base font-extrabold tracking-tight text-white">NovaSurge</div>
+          <div className="text-base font-extrabold tracking-tight text-white">AutoHeal</div>
           <div className="text-[10px] text-slate-500">Autonomous chaos engineering &amp; self-healing</div>
         </div>
       </div>

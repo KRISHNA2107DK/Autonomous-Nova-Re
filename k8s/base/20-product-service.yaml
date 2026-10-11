@@ -1,7 +1,7 @@
 # product-service — catalogue, cache-aside reads, atomic stock reservation.
 #
 # novasurge.io/baseline-* annotations record the declared ("known good") state.
-# Chaos experiments only mutate the live spec; NovaSurge's resource_restore and
+# Chaos experiments only mutate the live spec; AutoHeal's resource_restore and
 # hpa_scaleout remediators reconcile back to these declared values.
 apiVersion: apps/v1
 kind: Deployment

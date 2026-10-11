@@ -1,1 +1,1 @@
-"""NovaSurge HTTP API, WebSocket stream and dashboard host."""
+"""AutoHeal HTTP API, WebSocket stream and dashboard host."""

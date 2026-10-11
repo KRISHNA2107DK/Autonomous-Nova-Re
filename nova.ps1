@@ -1,5 +1,5 @@
 <#
-  NovaSurge launcher for Windows (PowerShell).
+  AutoHeal launcher for Windows (PowerShell).
 
     .\nova.ps1 demo        everything end-to-end (first run ~15 min, then ~1 min to be ready)
     .\nova.ps1 serve       dashboard + API on http://127.0.0.1:8000
@@ -7,12 +7,12 @@
     .\nova.ps1 help        all commands
 
   On first use it creates a Python virtual environment OUTSIDE the repository
-  (%LOCALAPPDATA%\NovaSurge\venv) so a OneDrive-synced folder never has to
+  (%LOCALAPPDATA%\AutoHeal\venv) so a OneDrive-synced folder never has to
   sync ~1 GB of dependencies, and installs requirements.txt into it.
 #>
 $ErrorActionPreference = "Stop"
 $Repo = Split-Path -Parent $MyInvocation.MyCommand.Path
-$HomeDir = if ($env:NOVASURGE_HOME) { $env:NOVASURGE_HOME } else { Join-Path $env:LOCALAPPDATA "NovaSurge" }
+$HomeDir = if ($env:NOVASURGE_HOME) { $env:NOVASURGE_HOME } else { Join-Path $env:LOCALAPPDATA "AutoHeal" }
 $Venv = Join-Path $HomeDir "venv"
 $Py = Join-Path $Venv "Scripts\python.exe"
 $Stamp = Join-Path $HomeDir "requirements.sha256"
