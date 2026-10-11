@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShopFusion</title>
+<style>
+  :root { --bg:#0f172a; --card:#1e293b; --line:#334155; --text:#e2e8f0; --muted:#94a3b8; --ok:#10b981; --bad:#ef4444; --acc:#3b82f6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  header { display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:2; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:18px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
+  .chip { padding:3px 8px; border-radius:999px; font-size:11px; border:1px solid var(--line); color:var(--muted); }
+  .chip.ok { border-color:var(--ok); color:var(--ok); } .chip.bad { border-color:var(--bad); color:var(--bad); }
+  main { display:grid; grid-template-columns:1fr 320px; gap:16px; padding:16px 20px; max-width:1300px; margin:0 auto; }
+  @media (max-width:900px) { main { grid-template-columns:1fr; } }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px; }
+  .card h3 { margin:0 0 4px; font-size:14px; } .muted { color:var(--muted); font-size:12px; }
+  .price { font-size:18px; font-weight:700; margin:6px 0; }
+  .row { display:flex; gap:6px; align-items:center; }
+  input, button { font:inherit; border-radius:6px; border:1px solid var(--line); background:#0b1220; color:var(--text); padding:6px 8px; }
+  input[type=number] { width:60px; } button { background:var(--acc); border-color:var(--acc); cursor:pointer; font-weight:600; }
+  button:disabled { opacity:.5; cursor:wait; }
+  aside .card { margin-bottom:12px; } aside h2 { font-size:13px; margin:0 0 8px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  pre { white-space:pre-wrap; word-break:break-word; margin:8px 0 0; font-size:12px; background:#0b1220; padding:8px; border-radius:6px; max-height:220px; overflow:auto; }
+  .log div { font-size:12px; padding:3px 0; border-bottom:1px solid var(--line); }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛒 ShopFusion</h1>
+  <span class="muted">a live microservice shop — every click goes through nginx → api-gateway → services</span>
+  <div class="chips" id="health"></div>
+</header>
+<main>
+  <section>
+    <div class="row" style="margin-bottom:12px">
+      <span class="muted">Shopping as</span><input id="user" value="guest-1" size="12">
+      <button id="refresh" type="button">Refresh catalogue</button>
+      <span class="muted" id="catalogue-info"></span>
+    </div>
+    <div class="grid" id="products"></div>
+  </section>
+  <aside>
+    <div class="card">
+      <h2>Look up</h2>
+      <div class="row"><input id="order-id" type="number" placeholder="order id" style="width:110px"><button type="button" id="find-order">Order</button></div>
+      <div class="row" style="margin-top:6px"><input id="payment-id" type="number" placeholder="payment id" style="width:110px"><button type="button" id="find-payment">Payment</button></div>
+      <pre id="lookup">—</pre>
+    </div>
+    <div class="card"><h2>Notifications</h2><pre id="notifications">—</pre></div>
+    <div class="card"><h2>Your activity</h2><div class="log" id="log"><div class="muted">No orders yet.</div></div></div>
+  </aside>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const money = (v) => `$${Number(v).toFixed(2)}`;
+
+async function call(method, path, body) {
+  const t0 = performance.now();
+  try {
+    const res = await fetch(path, { method, headers: body ? { 'Content-Type': 'application/json' } : {},
+                                    body: body ? JSON.stringify(body) : undefined });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data, ms: Math.round(performance.now() - t0) };
+  } catch (e) {
+    return { ok: false, status: 0, data: { error: e.message }, ms: Math.round(performance.now() - t0) };
+  }
+}
+
+async function loadHealth() {
+  const r = await call('GET', '/health/dependencies');
+  const deps = r.data.dependencies || [];
+  $('health').innerHTML = deps.map((d) =>
+    `<span class="chip ${d.healthy ? 'ok' : 'bad'}" title="${d.latency_ms} ms">${d.service.replace('-service', '')} ${d.healthy ? '●' : '✕'}</span>`).join('')
+    || '<span class="chip bad">gateway unreachable</span>';
+}
+
+async function loadProducts() {
+  const r = await call('GET', '/products');
+  if (!r.ok) { $('products').innerHTML = `<div class="card bad">Catalogue unavailable (HTTP ${r.status}). AutoHeal may be in the middle of a chaos round — try again in a few seconds.</div>`; return; }
+  $('catalogue-info').textContent = `${r.data.length} products · ${r.ms} ms`;
+  $('products').innerHTML = r.data.map((p) => `
+    <div class="card">
+      <h3>${p.name}</h3><div class="muted">${p.category} · #${p.id}</div>
+      <div class="price">${money(p.price)}</div>
+      <div class="muted">${p.stock} in stock</div>
+      <div class="row" style="margin-top:8px">
+        <input type="number" min="1" max="10" value="1" id="qty-${p.id}">
+        <button type="button" data-buy="${p.id}">Buy</button>
+      </div>
+    </div>`).join('');
+}
+
+function log(html) {
+  const el = $('log');
+  if (el.firstElementChild?.classList.contains('muted')) el.innerHTML = '';
+  el.insertAdjacentHTML('afterbegin', `<div>${new Date().toLocaleTimeString()} — ${html}</div>`);
+}
+
+async function buy(id, btn) {
+  btn.disabled = true;
+  const quantity = Number($(`qty-${id}`).value) || 1;
+  const r = await call('POST', '/orders', { user_id: $('user').value || 'guest', product_id: id, quantity });
+  btn.disabled = false;
+  if (r.ok) {
+    const o = r.data;
+    const cls = o.status === 'confirmed' ? 'ok' : 'bad';
+    log(`order <b>#${o.id}</b> <span class="${cls}">${o.status}</span> · ${money(o.amount)} · payment #${o.payment_id ?? '—'} · ${r.ms} ms`);
+    $('order-id').value = o.id; if (o.payment_id) $('payment-id').value = o.payment_id;
+  } else {
+    log(`<span class="bad">order failed: HTTP ${r.status} ${r.data.detail || r.data.error || ''}</span> · ${r.ms} ms`);
+  }
+  loadProducts();
+}
+
+async function lookup(kind) {
+  const id = $(`${kind}-id`).value;
+  if (!id) return;
+  const r = await call('GET', `/${kind}s/${id}`);
+  $('lookup').textContent = `GET /${kind}s/${id} → HTTP ${r.status} (${r.ms} ms)\n` + JSON.stringify(r.data, null, 2);
+}
+
+async function loadNotifications() {
+  const r = await call('GET', '/notifications/stats');
+  $('notifications').textContent = r.ok ? JSON.stringify(r.data.received, null, 2) : `unavailable (HTTP ${r.status})`;
+}
+
+$('products').addEventListener('click', (e) => { const id = e.target.dataset.buy; if (id) buy(Number(id), e.target); });
+$('refresh').addEventListener('click', loadProducts);
+$('find-order').addEventListener('click', () => lookup('order'));
+$('find-payment').addEventListener('click', () => lookup('payment'));
+
+loadHealth(); loadProducts(); loadNotifications();
+setInterval(loadHealth, 5000);
+setInterval(loadNotifications, 5000);
+</script>
+</body>
+</html>

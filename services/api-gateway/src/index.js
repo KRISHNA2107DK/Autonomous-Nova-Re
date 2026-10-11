@@ -24,6 +24,7 @@
  *   http_client_request_duration_seconds{target}
  */
 
+const path = require('path');
 const express = require('express');
 const client = require('prom-client');
 const { Agent, fetch } = require('undici');
@@ -90,7 +91,8 @@ const app = express();
 app.disable('x-powered-by');
 
 app.use((req, res, next) => {
-  if (UNINSTRUMENTED.has(req.path)) return next();
+  // Static storefront page loads are not API traffic: keep them out of the RED metrics.
+  if (UNINSTRUMENTED.has(req.path) || req.path === '/' || req.path.startsWith('/shop')) return next();
   const upstream = upstreamFor(req.path);
   const route = upstream ? upstream.prefix : 'unmatched';
   const start = process.hrtime.bigint();
@@ -110,6 +112,10 @@ app.use((req, res, next) => {
 
 // ── Probes & metrics ─────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: SERVICE }));
+
+// ShopFusion storefront (single static page calling the APIs above through this gateway).
+app.use('/shop', express.static(path.join(__dirname, 'public'), { maxAge: '1m' }));
+app.get('/', (_req, res) => res.redirect('/shop/'));
 app.get('/ready', (_req, res) => res.json({ status: 'ready', service: SERVICE }));
 
 app.get('/health/dependencies', async (_req, res) => {
