@@ -24,7 +24,7 @@ generator, and the AutoHeal control plane with a live dashboard.
 
 ## Quick start (Windows)
 
-**You need:** Docker Desktop (running), Python 3.11+, ~4 GB RAM for Docker,
+**You need:** Docker Desktop (running),  Python 3.11+, ~4 GB RAM for Docker,
 internet for the first run. Node.js is *not* needed (the dashboard ships pre-built).
 
 ```powershell
